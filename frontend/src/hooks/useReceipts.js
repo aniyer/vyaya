@@ -10,7 +10,7 @@ export function useReceipts(initialParams = {}) {
     const [error, setError] = useState(null)
     const [pagination, setPagination] = useState({
         page: 1,
-        perPage: 20,
+        perPage: 10,
         total: 0,
         pages: 0,
     })
@@ -22,7 +22,11 @@ export function useReceipts(initialParams = {}) {
         setLoading(true)
         setError(null)
         try {
-            const data = await receiptsApi.list({ ...stableParams, ...params })
+            const data = await receiptsApi.list({
+                per_page: 10,
+                ...stableParams,
+                ...params
+            })
             setReceipts(data.items)
             setPagination({
                 page: data.page,

@@ -48,47 +48,59 @@ export default function Dashboard() {
             {/* Header */}
             <div>
                 <h2 className="text-2xl font-bold text-white mb-1">Dashboard</h2>
-                <p className="text-surface-400">Your spending overview</p>
             </div>
 
-            {/* Main stat card */}
-            <div className="card p-6 bg-gradient-to-br from-primary-500/10 to-primary-600/5">
-                <p className="text-sm font-medium text-surface-400 mb-2">This Month</p>
-                <p className="text-4xl font-bold text-white mb-4">
-                    {formatCurrency(summary?.current_month_total)}
-                </p>
+            {/* Main Content */}
+            <div className="space-y-8">
+                {/* This Month Section */}
+                <section className="space-y-4">
+                    <h3 className="text-lg font-semibold text-white px-1">This Month</h3>
 
-                <div className="flex items-center gap-4">
-                    <div className={`flex items-center gap-1 text-sm ${isPositive ? 'text-red-400' : 'text-green-400'}`}>
-                        <svg
-                            className={`w-4 h-4 ${isPositive ? '' : 'rotate-180'}`}
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                        >
-                            <polyline points="18 15 12 9 6 15" />
-                        </svg>
-                        <span className="font-medium">
-                            {Math.abs(momChange).toFixed(1)}%
-                        </span>
+                    {/* Summary Card */}
+                    <div className="card p-6 bg-gradient-to-br from-primary-500/10 to-primary-600/5">
+                        <p className="text-sm font-medium text-surface-400 mb-2">Total Spent</p>
+                        <p className="text-4xl font-bold text-white mb-4">
+                            {formatCurrency(summary?.current_month_total)}
+                        </p>
+
+                        <div className="flex items-center gap-4">
+                            <div className={`flex items-center gap-1 text-sm ${isPositive ? 'text-red-400' : 'text-green-400'}`}>
+                                <svg
+                                    className={`w-4 h-4 ${isPositive ? '' : 'rotate-180'}`}
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                >
+                                    <polyline points="18 15 12 9 6 15" />
+                                </svg>
+                                <span className="font-medium">
+                                    {Math.abs(momChange).toFixed(1)}%
+                                </span>
+                            </div>
+                            <span className="text-sm text-surface-500">
+                                vs last month ({formatCurrency(summary?.previous_month_total)})
+                            </span>
+                        </div>
+
+                        <div className="mt-4 pt-4 border-t border-surface-700/50">
+                            <p className="text-sm text-surface-400">
+                                <span className="text-white font-medium">{summary?.current_month_count || 0}</span> receipts this month
+                            </p>
+                        </div>
                     </div>
-                    <span className="text-sm text-surface-500">
-                        vs last month ({formatCurrency(summary?.previous_month_total)})
-                    </span>
-                </div>
 
-                <div className="mt-4 pt-4 border-t border-surface-700/50">
-                    <p className="text-sm text-surface-400">
-                        <span className="text-white font-medium">{summary?.current_month_count || 0}</span> receipts this month
-                    </p>
-                </div>
-            </div>
+                    <CategoryPie data={summary?.category_breakdown} />
+                </section>
 
-            {/* Charts */}
-            <div className="space-y-4">
-                <SpendingTrend data={trends?.monthly_data} />
-                <CategoryPie data={summary?.category_breakdown} />
+                {/* Divider */}
+                <div className="border-t border-surface-800 my-8"></div>
+
+                {/* Trends Section */}
+                <section className="space-y-4">
+                    <h3 className="text-lg font-semibold text-white px-1">Trends</h3>
+                    <SpendingTrend data={trends?.monthly_data} />
+                </section>
             </div>
 
 

@@ -56,9 +56,6 @@ export default function Receipts() {
                         {pagination.total} {pagination.total === 1 ? 'receipt' : 'receipts'}
                     </p>
                 </div>
-                <Link to="/capture" className="btn-primary py-2 px-4 text-sm">
-                    + Add
-                </Link>
             </div>
 
             {/* Receipt list */}

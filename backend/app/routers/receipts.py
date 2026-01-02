@@ -3,10 +3,12 @@
 import os
 import uuid
 import shutil
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
+from zoneinfo import ZoneInfo
 
+from PIL import Image, ExifTags
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -45,7 +47,41 @@ def process_receipt_background(receipt_id: int, file_path: str):
         if not receipt:
             return
 
-        # Run OCR
+        # Extract date from metadata or fallback to EST
+        extracted_date = None
+        try:
+            with Image.open(file_path) as img:
+                exif = img._getexif()
+                if exif:
+                    for tag, value in exif.items():
+                        if tag in ExifTags.TAGS and ExifTags.TAGS[tag] == 'DateTimeOriginal':
+                            # Format: YYYY:MM:DD HH:MM:SS
+                            extracted_date = datetime.strptime(value, '%Y:%m:%d %H:%M:%S').date()
+                            break
+        except Exception as e:
+            print(f"Error extracting metadata: {e}")
+
+        if not extracted_date:
+            # Fallback to current time in EST
+            est = ZoneInfo("US/Eastern")
+            extracted_date = datetime.now(est).date()
+
+        # LLM extraction might override if it's confident, but requirements say 
+        # "use timestamp of image meta data" so we set it here.
+        # We can let LLM refine it if we trust LLM more for the *printed* date, 
+        # but user request specifically asked for metadata timestamp.
+        # Let's set it as default and allow LLM to override ONLY if metadata was missing?
+        # actually user said: "when determining ... use timestamp of image meta data"
+        # and "if time is not available ... use current time in EST"
+        # This implies Metadata > EST. 
+        # What about the printed date on receipt? Usually that's what people want.
+        # But strictly following "use timestamp of image meta data":
+        
+        receipt.transaction_date = extracted_date
+        
+        # Note: We are ignoring LLM extracted date for now based on strict reading of request.
+        # If we wanted to support LLM date, we would check if extracted_date came from Exif or EST.
+            
         try:
             ocr_result = process_receipt_image(file_path)
             
@@ -54,9 +90,14 @@ def process_receipt_background(receipt_id: int, file_path: str):
             receipt.amount = ocr_result.get("amount")
             receipt.currency = ocr_result.get("currency", "USD")
             
-            # Default to today if LLM fails to extract date
-            extracted_date = ocr_result.get("date")
-            receipt.transaction_date = extracted_date if extracted_date else date.today()
+            # If we want to prefer the Printed Date over the Metadata Date (which is common),
+            # we would use ocr_result.get("date") here. 
+            # However, the user request was specific about metadata.
+            # often image metadata is capture time, transaction time is printed.
+            # I will stick to metadata as requested, but if LLM finds a date, maybe we should use it?
+            # Re-reading: "when determining date/time for a receipt, use the timestamp of image meta data"
+            # This sounds like a rule to define the *transaction* time.
+            # I will use the metadata date.
             
             receipt.raw_ocr_text = ocr_result.get("raw_text")
             
