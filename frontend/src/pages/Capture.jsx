@@ -38,15 +38,14 @@ export default function Capture() {
     return (
         <div className="py-6 space-y-6">
             {/* Header */}
-            <header className="absolute top-0 left-0 right-0 z-10 p-4 flex justify-end items-start">
-
+            <div className="flex justify-end p-2">
                 <button
                     onClick={() => navigate('/manual')}
                     className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-colors"
                 >
                     Enter Manually
                 </button>
-            </header>
+            </div>
             <div>
                 <h2 className="text-2xl font-bold text-white mb-1">Capture Receipt</h2>
                 <p className="text-surface-400">
