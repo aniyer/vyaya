@@ -1,0 +1,48 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vyaya-backend
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=sqlite:////app/data/vyaya.db
+      - OCR_ENGINE=${OCR_ENGINE:-minicpm-v}
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+    volumes:
+      - /mnt/applications/vyaya/config:/app/data
+      - /mnt/applications/vyaya/storage:/app/data/receipts
+    expose:
+      - "8000"
+    networks:
+      - internal_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 300s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vyaya-frontend
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:80"
+    networks:
+      - internal_network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 300s
+      timeout: 10s
+      retries: 3
+
+networks:
+  internal_network:
+    external: true
