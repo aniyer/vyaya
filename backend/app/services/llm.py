@@ -1,4 +1,4 @@
-"""OCR processing service using MiniCPM-V (via llama.cpp)."""
+"""OCR processing service using Gemma 3 (via llama.cpp)."""
 
 import json
 import logging
@@ -8,8 +8,8 @@ from typing import Optional, Dict, Any
 from pathlib import Path
 
 # llama-cpp-python
-from llama_cpp import Llama
-from llama_cpp.llama_chat_format import MiniCPMv26ChatHandler
+from llama_cpp import Llama, LlamaGrammar
+from llama_cpp.llama_chat_format import Llava15ChatHandler
 
 from ..config import get_settings
 from .categorizer import VALID_CATEGORIES
@@ -20,25 +20,40 @@ logger = logging.getLogger(__name__)
 # Global model instance
 _llm_engine = None
 
+# Schema for strict JSON output
+RECEIPT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "vendor": {"type": ["string", "null"]},
+        "date": {"type": ["string", "null"]},
+        "amount": {"type": ["number", "null"]},
+        "currency": {"type": ["string", "null"]},
+        "category": {"type": ["string", "null"]}
+    },
+    "required": ["vendor", "date", "amount", "currency", "category"]
+}
+
 def get_llm_engine():
     global _llm_engine
     if _llm_engine is None:
-        logger.info("Initializing MiniCPM-V engine...")
+        logger.info("Initializing Gemma 3 4B QAT engine...")
         
         # Paths to local GGUF models
-        model_path = "/app/models/MiniCPM-V-2_6-Q4_K_M.gguf"
-        mmproj_path = "/app/models/mmproj-model-f16.gguf"
+        model_path = "/app/models/google_gemma-3-4b-it-qat-Q4_0.gguf"
+        mmproj_path = "/app/models/mmproj-google_gemma-3-4b-it-f16.gguf"
         
         if not Path(model_path).exists() or not Path(mmproj_path).exists():
-            raise FileNotFoundError("MiniCPM-V model files not found in /app/models")
+            raise FileNotFoundError("Gemma 3 model files not found in /app/models")
 
-        # Set up Chat Handler for MiniCPM-V 2.6
-        chat_handler = MiniCPMv26ChatHandler(clip_model_path=mmproj_path)
+        # Set up Chat Handler for Multimodal (assuming LLaVA-style projector)
+        # using Llava15ChatHandler as a generic handler for mmproj-based models in simple setups.
+        # If Gemma 3 has specific needs, this might need adjustment, but this is standard for mmproj.
+        chat_handler = Llava15ChatHandler(clip_model_path=mmproj_path)
         
         # Initialize Llama
         # n_ctx=4096 or higher for image+text
         # n_gpu_layers=0 for CPU
-        # Limit threads to prevent CPU starvation
+        # threads=4 to prevent starvation
         _llm_engine = Llama(
             model_path=model_path,
             chat_handler=chat_handler,
@@ -46,7 +61,8 @@ def get_llm_engine():
             n_gpu_layers=0,
             n_threads=4,
             n_threads_batch=4,
-            verbose=False
+            verbose=False,
+            device="cpu" # Explicitly CPU
         )
         
     return _llm_engine
@@ -75,7 +91,7 @@ def extract_json_from_response(text: str) -> Optional[Dict[str, Any]]:
 
 def process_receipt_image(image_path: str) -> dict:
     """
-    Process a receipt image using MiniCPM-V.
+    Process a receipt image using Gemma 3.
     """
     if not Path(image_path).exists():
         raise FileNotFoundError(f"Image not found: {image_path}")
@@ -96,7 +112,7 @@ Act as an advanced OCR and data extraction assistant. Analyze the provided recei
 4. **Currency**: Identify the currency symbol or code (e.g., USD, EUR, GBP).
 5. **Category**: Assign the most relevant category from this list: [{categories_str}].
 
-### Output Schema:
+### Output Schema (Strict JSON):
 {{
     "vendor": "string or null",
     "date": "string or null",
@@ -104,11 +120,6 @@ Act as an advanced OCR and data extraction assistant. Analyze the provided recei
     "currency": "string or null",
     "category": "string or null"
 }}
-
-### Constraints:
-- Return ONLY the JSON object. 
-- If a value is missing or illegible, use null.
-- Ensure "amount" is a raw number without symbols.
 """        
         messages = [
             {
@@ -120,11 +131,15 @@ Act as an advanced OCR and data extraction assistant. Analyze the provided recei
             }
         ]
         
+        # Prepare Grammar from Schema
+        grammar = LlamaGrammar.from_json_schema(json.dumps(RECEIPT_SCHEMA))
+
         # Run Inference
         response = llm.create_chat_completion(
             messages=messages,
             temperature=0.1, # Low temperature for factual extraction
-            max_tokens=256
+            max_tokens=256,
+            grammar=grammar # Enforce GBNF
         )
         
         content = response["choices"][0]["message"]["content"]
@@ -147,7 +162,7 @@ Act as an advanced OCR and data extraction assistant. Analyze the provided recei
             "currency": parsed_data.get("currency", "USD"),
             "category": parsed_data.get("category"),
             "raw_text": content, # Store full LLM response as raw text
-            "confidence": 1.0 # LLM doesn't give confidence score easily
+            "confidence": 1.0 
         }
 
     except Exception as e:
