@@ -11,6 +11,8 @@ from .database import init_db, SessionLocal
 from .models import Category, DEFAULT_CATEGORIES
 from .routers import receipts, dashboard
 
+from .services.worker import start_worker
+
 settings = get_settings()
 
 
@@ -37,6 +39,9 @@ async def lifespan(app: FastAPI):
     
     # Ensure receipts directory exists
     settings.receipts_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Start background worker
+    start_worker()
     
     yield
     

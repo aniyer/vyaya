@@ -1,10 +1,23 @@
 """SQLAlchemy ORM models for receipt management."""
 
+import uuid
 from datetime import datetime, date
+from zoneinfo import ZoneInfo
 from sqlalchemy import Column, Integer, String, Float, Date, DateTime, Text, ForeignKey
 from sqlalchemy.orm import relationship
 
 from .database import Base
+
+
+
+def get_eastern_time():
+    """Get current time in Eastern Timezone as naive datetime."""
+    return datetime.now(ZoneInfo("US/Eastern")).replace(tzinfo=None)
+
+
+def get_eastern_date():
+    """Get current date in Eastern Timezone."""
+    return datetime.now(ZoneInfo("US/Eastern")).date()
 
 
 class Category(Base):
@@ -29,7 +42,7 @@ class Receipt(Base):
     
     __tablename__ = "receipts"
     
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     vendor = Column(String(255), index=True)
     amount = Column(Float, nullable=True)
     currency = Column(String(3), default="USD")
@@ -38,8 +51,8 @@ class Receipt(Base):
     image_path = Column(String(500), nullable=False)
     raw_ocr_text = Column(Text, nullable=True)
     status = Column(String(20), default="processing", index=True)  # processing, review, completed, failed
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=get_eastern_time)
+    updated_at = Column(DateTime, default=get_eastern_time, onupdate=get_eastern_time)
     
     # Relationship
     category = relationship("Category", back_populates="receipts")

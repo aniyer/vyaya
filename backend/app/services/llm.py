@@ -38,11 +38,14 @@ def get_llm_engine():
         # Initialize Llama
         # n_ctx=4096 or higher for image+text
         # n_gpu_layers=0 for CPU
+        # Limit threads to prevent CPU starvation
         _llm_engine = Llama(
             model_path=model_path,
             chat_handler=chat_handler,
             n_ctx=4096, 
             n_gpu_layers=0,
+            n_threads=4,
+            n_threads_batch=4,
             verbose=False
         )
         
@@ -84,19 +87,29 @@ def process_receipt_image(image_path: str) -> dict:
         categories_str = ", ".join(VALID_CATEGORIES)
         
         prompt = f"""
-        Analyze this receipt image and extract the following information in JSON format:
-        {{
-            "vendor": "Store Name",
-            "date": "YYYY-MM-DD",
-            "amount": 0.00,
-            "currency": "USD" (or EUR, GBP, CAD),
-            "category": "One of: {categories_str}"
-        }}
-        Amount is typically in the format Total: $123.45 or Total: 123.45 USD.
-        Select the most appropriate category based on the items and vendor.
-        Only return the JSON object. If a field is not found, use null.
-        """
-        
+Act as an advanced OCR and data extraction assistant. Analyze the provided receipt image and extract specific data points into a structured JSON format.
+
+### Extraction Instructions:
+1. **Vendor**: Identify the official name of the store or service provider.
+2. **Date**: Extract the transaction date. Normalize to "YYYY-MM-DD".
+3. **Amount**: Locate the final "Total" or "Amount Due". Exclude sub-totals.
+4. **Currency**: Identify the currency symbol or code (e.g., USD, EUR, GBP).
+5. **Category**: Assign the most relevant category from this list: [{categories_str}].
+
+### Output Schema:
+{{
+    "vendor": "string or null",
+    "date": "string or null",
+    "amount": number or null,
+    "currency": "string or null",
+    "category": "string or null"
+}}
+
+### Constraints:
+- Return ONLY the JSON object. 
+- If a value is missing or illegible, use null.
+- Ensure "amount" is a raw number without symbols.
+"""        
         messages = [
             {
                 "role": "user",
