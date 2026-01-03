@@ -10,6 +10,10 @@ services:
       - OCR_ENGINE=${OCR_ENGINE:-minicpm-v}
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
+      # Resource Limiting
+      - WEB_CONCURRENCY=1
+      - OMP_NUM_THREADS=4
+      - MKL_NUM_THREADS=4
     volumes:
       - /mnt/applications/vyaya/config:/app/data
       - /mnt/applications/vyaya/storage:/app/data/receipts
@@ -31,7 +35,7 @@ services:
     container_name: vyaya-frontend
     restart: unless-stopped
     ports:
-      - "${PORT:-8080}:80"
+      - "8080:80"
     networks:
       - internal_network
     depends_on:

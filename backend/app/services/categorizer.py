@@ -19,11 +19,6 @@ CATEGORY_KEYWORDS = {
         "dunkin", "panera", "deli", "bakery", "grill", "kitchen",
         "diner", "bistro", "eatery", "bar & grill",
     ],
-    "Fuel": [
-        "shell", "exxon", "chevron", "bp", "gas station", "mobil",
-        "speedway", "circle k", "wawa", "pilot", "loves", "fuel",
-        "petroleum", "texaco", "phillips 66", "marathon", "valero",
-    ],
     "Utilities": [
         "electric", "water", "gas", "internet", "comcast", "at&t",
         "verizon", "t-mobile", "sprint", "utility", "power", "energy",
@@ -42,7 +37,7 @@ CATEGORY_KEYWORDS = {
     "Transportation": [
         "uber", "lyft", "taxi", "metro", "transit", "parking", "toll",
         "dmv", "auto", "car wash", "oil change", "tire", "mechanic",
-        "rental car", "hertz", "enterprise", "avis",
+        "rental car", "hertz", "enterprise", "avis", "supercharger", "gas"
     ],
     "Entertainment": [
         "netflix", "spotify", "hulu", "disney", "movie", "theater",

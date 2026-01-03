@@ -62,9 +62,13 @@ export function useReceipt(id) {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
 
-    const fetchReceipt = useCallback(async () => {
+
+    const fetchReceipt = useCallback(async (options = {}) => {
         if (!id) return
-        setLoading(true)
+        // Only set loading if not a background refresh
+        if (!options.background) {
+            setLoading(true)
+        }
         setError(null)
         try {
             const data = await receiptsApi.get(id)
@@ -72,9 +76,12 @@ export function useReceipt(id) {
         } catch (err) {
             setError(err.message || 'Failed to fetch receipt')
         } finally {
-            setLoading(false)
+            if (!options.background) {
+                setLoading(false)
+            }
         }
     }, [id])
+
 
     useEffect(() => {
         fetchReceipt()

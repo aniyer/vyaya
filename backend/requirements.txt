@@ -8,3 +8,5 @@ llama-cpp-python
 Pillow==10.2.0
 python-dateutil==2.8.2
 aiofiles==23.2.1
+tzdata
+

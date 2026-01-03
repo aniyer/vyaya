@@ -54,7 +54,7 @@ class ReceiptUpdate(BaseModel):
 
 class ReceiptResponse(ReceiptBase):
     """Schema for receipt response."""
-    id: int
+    id: str
     image_path: str
     raw_ocr_text: Optional[str] = None
     status: str = "processing"

@@ -14,15 +14,21 @@ export default function ReceiptDetail() {
     const [deleting, setDeleting] = useState(false)
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
+
+    // Poll for updates while processing
+
     // Poll for updates while processing
     useEffect(() => {
-        if (receipt?.status === 'processing') {
+        // Pausing polling when delete confirmation is shown to prevent modal from closing
+        if (receipt?.status === 'processing' && !showDeleteConfirm) {
             const timer = setInterval(() => {
-                refetch()
-            }, 2000)
+                refetch({ background: true })
+            }, 5000)
             return () => clearInterval(timer)
         }
-    }, [receipt?.status, refetch])
+    }, [receipt?.status, refetch, showDeleteConfirm])
+
+
 
     const handleSave = async (data) => {
         setSaving(true)
@@ -56,6 +62,13 @@ export default function ReceiptDetail() {
         }).format(amt || 0)
     }
 
+    const formatDate = (dateStr) => {
+        if (!dateStr) return 'Unknown'
+        // Create date object treating yyyy-mm-dd as local date
+        const [year, month, day] = dateStr.split('-')
+        return format(new Date(year, month - 1, day), 'MMMM d, yyyy')
+    }
+
     if (loading) {
         return (
             <div className="py-6 space-y-4">
@@ -82,6 +95,33 @@ export default function ReceiptDetail() {
         )
     }
 
+
+    const deleteModal = showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="card p-6 max-w-sm w-full animate-fade-in">
+                <h3 className="text-lg font-bold text-white mb-2">Delete Receipt?</h3>
+                <p className="text-surface-400 mb-6">
+                    This action cannot be undone. The receipt and its image will be permanently deleted.
+                </p>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="btn-secondary flex-1"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        className="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium px-6 py-3 rounded-xl transition-colors disabled:opacity-50"
+                    >
+                        {deleting ? 'Deleting...' : 'Delete'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    )
+
     if (receipt.status === 'processing') {
         return (
             <div className="py-6 space-y-6">
@@ -101,7 +141,7 @@ export default function ReceiptDetail() {
                     <p className="text-surface-400 mb-6">
                         AI is analyzing the image and extracting details...
                     </p>
-                    <div className="card bg-surface-800 p-4 max-w-sm mx-auto">
+                    <div className="card bg-surface-800 p-4 max-w-sm mx-auto mb-6">
                         <div className="flex items-center gap-4">
                             <div className="w-16 h-16 rounded-lg bg-surface-700 overflow-hidden">
                                 <img
@@ -116,10 +156,20 @@ export default function ReceiptDetail() {
                             </div>
                         </div>
                     </div>
+
+                    <button
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors"
+                    >
+                        Delete Receipt
+                    </button>
                 </div>
+
+                {deleteModal}
             </div>
         )
     }
+
 
     return (
         <div className="py-6 space-y-4">
@@ -191,9 +241,7 @@ export default function ReceiptDetail() {
                         <div className="flex justify-between text-sm">
                             <span className="text-surface-400">Date</span>
                             <span className="text-white">
-                                {receipt.transaction_date
-                                    ? format(new Date(receipt.transaction_date), 'MMMM d, yyyy')
-                                    : 'Unknown'}
+                                {formatDate(receipt.transaction_date)}
                             </span>
                         </div>
                         <div className="flex justify-between text-sm">

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 
 from ..database import get_db
-from ..models import Receipt, Category
+from ..models import Receipt, Category, get_eastern_date
 from ..schemas import (
     DashboardSummary,
     SpendingTrends,
@@ -25,7 +25,7 @@ async def get_dashboard_summary(db: Session = Depends(get_db)):
     """
     Get dashboard summary with current month spending and category breakdown.
     """
-    today = date.today()
+    today = get_eastern_date()
     current_month_start = today.replace(day=1)
     previous_month_start = (current_month_start - relativedelta(months=1))
     previous_month_end = current_month_start - relativedelta(days=1)
@@ -103,7 +103,7 @@ async def get_spending_trends(
     """
     Get spending trends for the last N months.
     """
-    today = date.today()
+    today = get_eastern_date()
     start_date = (today.replace(day=1) - relativedelta(months=months - 1))
     
     # Query monthly spending
