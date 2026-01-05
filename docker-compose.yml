@@ -7,7 +7,6 @@ services:
     restart: unless-stopped
     environment:
       - DATABASE_URL=sqlite:////app/data/vyaya.db
-      - OCR_ENGINE=${OCR_ENGINE:-minicpm-v}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}

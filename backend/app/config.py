@@ -17,15 +17,12 @@ class Settings(BaseSettings):
     
     # LLM Settings
     google_api_key: str | None = None
+    llm_model: str = "models/gemma-3-4b-it"
     
     # Storage paths
     data_dir: Path = Path("/app/data")
     receipts_dir: Path = Path("/app/data/receipts")
-    
-    # OCR settings
-    # OCR settings
-    ocr_engine: str = "minicpm-v"  # minicpm-v, groq, ollama
-    
+        
     # Server
     host: str = "0.0.0.0"
     port: int = 8000

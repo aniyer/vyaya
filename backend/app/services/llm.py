@@ -1,4 +1,4 @@
-"""OCR processing service using Google Gemini AI."""
+"""OCR processing service using LLM (e.g., Google Gemini or Gemma)."""
 
 import json
 import logging
@@ -16,7 +16,7 @@ from .categorizer import VALID_CATEGORIES
 settings = get_settings()
 logger = logging.getLogger(__name__)
 
-# Initialize Gemini Client
+# Initialize LLM Client
 client = None
 if settings.google_api_key:
     client = genai.Client(api_key=settings.google_api_key)
@@ -28,16 +28,17 @@ def extract_json_from_response(text: str) -> Optional[Dict[str, Any]]:
     try:
         # Remove markdown code formatting if present
         text = text.strip()
-        if text.startswith("```json"):
-            text = text[7:]
-        if text.startswith("```"):
-            text = text[3:]
-        if text.endswith("```"):
-            text = text[:-3]
         
-        return json.loads(text.strip())
+        # Try to find the first '{' and last '}' to isolate JSON
+        start_idx = text.find('{')
+        end_idx = text.rfind('}')
+        
+        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+            text = text[start_idx:end_idx + 1]
+        
+        return json.loads(text)
     except json.JSONDecodeError:
-        logger.error(f"Failed to parse JSON from Gemini response: {text}")
+        logger.error(f"Failed to parse JSON from LLM response: {text}")
         return None
 
 async def process_receipt_image(image_path: str) -> dict:
@@ -85,7 +86,7 @@ Act as an advanced OCR and data extraction assistant. Analyze the provided recei
 Respond ONLY with valid JSON matching this schema. Do not include any other text.
 """        
         
-        logger.info(f"Calling Gemini API with model models/gemini-flash-lite-latest")
+        logger.info(f"Calling LLM API with model {settings.llm_model}")
         
         # Call Gemini using google-genai SDK
         # We use a synchronous call in an executor or just run it since it's likely blocking if not using async client
@@ -93,17 +94,16 @@ Respond ONLY with valid JSON matching this schema. Do not include any other text
         # However, we are in an async function.
         
         response = client.models.generate_content(
-            model='models/gemini-flash-lite-latest',
+            model=settings.llm_model,
             contents=[prompt, img],
             config=types.GenerateContentConfig(
                 temperature=0.1,
-                max_output_tokens=512,
-                response_mime_type='application/json'
+                max_output_tokens=1024, # Increased for potentially longer reasoning
             )
         )
         
         content = response.text
-        logger.info(f"Gemini Response: {content}")
+        logger.info(f"LLM Response: {content}")
         
         parsed_data = extract_json_from_response(content) or {}
         
