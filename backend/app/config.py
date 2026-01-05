@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "sqlite:///app/data/vyaya.db"
     
+    # LLM Settings
+    google_api_key: str | None = None
+    
     # Storage paths
     data_dir: Path = Path("/app/data")
     receipts_dir: Path = Path("/app/data/receipts")

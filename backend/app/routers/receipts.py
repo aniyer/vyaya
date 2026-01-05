@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 from PIL import Image, ExifTags
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, BackgroundTasks
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 
 from ..database import get_db, SessionLocal
 from ..config import get_settings
@@ -125,6 +125,7 @@ async def list_receipts(
     category_id: Optional[int] = None,
     start_date: Optional[date] = None,
     end_date: Optional[date] = None,
+    q: Optional[str] = Query(None, description="Search query for vendor or OCR text"),
     db: Session = Depends(get_db),
 ):
     """
@@ -140,12 +141,26 @@ async def list_receipts(
     if end_date:
         query = query.filter(Receipt.transaction_date <= end_date)
     
+    # Apply search query
+    if q:
+        search_filter = (
+            Receipt.vendor.ilike(f"%{q}%") | 
+            Receipt.raw_ocr_text.ilike(f"%{q}%")
+        )
+        query = query.filter(search_filter)
+    
     # Get total count
     total = query.count()
     
-    # Apply pagination
+    # Apply pagination with custom sorting
+    # Sort processing receipts first, then by date and creation time
     receipts = (
-        query.order_by(Receipt.transaction_date.desc(), Receipt.created_at.desc())
+        query.order_by(
+            # Processing receipts first (0), then others (1)
+            case((Receipt.status == "processing", 0), else_=1),
+            Receipt.transaction_date.desc(),
+            Receipt.created_at.desc()
+        )
         .offset((page - 1) * per_page)
         .limit(per_page)
         .all()

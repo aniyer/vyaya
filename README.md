@@ -71,7 +71,6 @@ vyaya/
 | `PORT` | `8080` | Port to access the web UI |
 | `PUID` | `1000` | User ID for file permissions |
 | `PGID` | `1000` | Group ID for file permissions |
-| `OCR_ENGINE` | `gemma-3-qat` | OCR engine configuration |
 
 ### Data Persistence
 
