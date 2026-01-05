@@ -56,10 +56,15 @@ export default function ReceiptDetail() {
     }
 
     const formatAmount = (amt, curr = 'USD') => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: curr,
-        }).format(amt || 0)
+        try {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: curr,
+            }).format(amt || 0)
+        } catch (e) {
+            // Fallback for invalid currency codes (e.g. symbols like '₹')
+            return `${curr} ${amt || 0}`
+        }
     }
 
     const formatDate = (dateStr) => {

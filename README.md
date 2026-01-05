@@ -7,7 +7,7 @@ A self-hosted, mobile-first web application for receipt management and expense t
 ## Features
 
 - 📸 **Receipt Capture**: Mobile-friendly camera integration for quick receipt scanning
-- 🔍 **OCR Extraction**: Automatic extraction of vendor, date, and amount using MiniCPM-V (Local LLM)
+- 🔍 **OCR Extraction**: Automatic extraction of vendor, date, and amount using Gemma 3 4B QAT (Local LLM)
 - 📊 **Expense Dashboard**: Visualize spending trends and category breakdowns
 - ✏️ **Manual Override**: Edit extracted data when OCR makes mistakes
 - 🏷️ **Auto-Categorization**: Intelligent category assignment based on vendor names
@@ -71,7 +71,6 @@ vyaya/
 | `PORT` | `8080` | Port to access the web UI |
 | `PUID` | `1000` | User ID for file permissions |
 | `PGID` | `1000` | Group ID for file permissions |
-| `OCR_ENGINE` | `minicpm-v` | OCR engine: `minicpm-v`, `groq`, or `ollama` |
 
 ### Data Persistence
 
@@ -140,7 +139,7 @@ npm run dev
 
 - **Frontend**: React, Vite, Tailwind CSS, Recharts
 - **Backend**: Python, FastAPI, SQLAlchemy
-- **OCR**: MiniCPM-V (via llama-cpp-python)
+- **OCR**: Gemma 3 4B QAT (via llama-cpp-python + OpenBLAS)
 - **Database**: SQLite
 - **Deployment**: Docker, nginx
 

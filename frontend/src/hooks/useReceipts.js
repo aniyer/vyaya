@@ -15,8 +15,8 @@ export function useReceipts(initialParams = {}) {
         pages: 0,
     })
 
-    // Stable params to prevent infinite loops
-    const stableParams = useMemo(() => initialParams, [JSON.stringify(initialParams)])
+    // Stable params to prevent infinite loops - using JSON.stringify to deep compare
+    const paramsKey = JSON.stringify(initialParams)
 
     const fetchReceipts = useCallback(async (params = {}) => {
         setLoading(true)
@@ -24,7 +24,7 @@ export function useReceipts(initialParams = {}) {
         try {
             const data = await receiptsApi.list({
                 per_page: 10,
-                ...stableParams,
+                ...initialParams,
                 ...params
             })
             setReceipts(data.items)
@@ -39,7 +39,7 @@ export function useReceipts(initialParams = {}) {
         } finally {
             setLoading(false)
         }
-    }, [stableParams])
+    }, [paramsKey])
 
     useEffect(() => {
         fetchReceipts()
