@@ -62,7 +62,7 @@ def process_receipt_task(receipt_id: str, file_path: str):
             receipt.transaction_date = extracted_date
 
             # 2. LLM Extraction
-            ocr_result = process_receipt_image(file_path)
+            ocr_result = asyncio.run(process_receipt_image(file_path))
             
             # Check for explicit failure returned by LLM service
             if ocr_result.get("confidence") == 0.0 and "Error" in ocr_result.get("raw_text", ""):
