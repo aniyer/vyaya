@@ -33,7 +33,7 @@ class ReceiptBase(BaseModel):
     """Base receipt schema."""
     vendor: Optional[str] = Field(None, max_length=255)
     amount: Optional[float] = Field(None, ge=0)
-    currency: str = Field(default="USD", max_length=3)
+    currency: Optional[str] = Field(default="USD", max_length=3)
     transaction_date: Optional[date] = None
     category_id: Optional[int] = None
 

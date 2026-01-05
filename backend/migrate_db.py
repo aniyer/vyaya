@@ -6,14 +6,22 @@ import sqlite3
 import os
 from pathlib import Path
 
-DB_PATH = Path("/app/data/vyaya.db")
+DB_PATH = Path(__file__).parent.parent / "config" / "vyaya.db"
 
 def migrate():
+    print(f"Checking database at {DB_PATH}")
     if not DB_PATH.exists():
-        print(f"Database not found at {DB_PATH}. Skipping migration.")
-        return
+        # Fallback to absolute path inside container
+        CONTAINER_PATH = Path("/app/data/vyaya.db")
+        if CONTAINER_PATH.exists():
+            print(f"Using container path: {CONTAINER_PATH}")
+            conn = sqlite3.connect(CONTAINER_PATH)
+        else:
+            print(f"Database not found at {DB_PATH} or {CONTAINER_PATH}. Skipping migration.")
+            return
+    else:
+        conn = sqlite3.connect(DB_PATH)
 
-    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
     try:
@@ -24,7 +32,7 @@ def migrate():
         if "status" not in columns:
             print("Adding 'status' column to 'receipts' table...")
             # Add column with default 'completed' for existing records
-            cursor.execute("ALTER TABLE receipts ADD COLUMN status VARCHAR(20) DEFAULT 'review'")
+            cursor.execute("ALTER TABLE receipts ADD COLUMN status VARCHAR(20) DEFAULT 'completed'")
             conn.commit()
             print("Migration successful.")
         else:
