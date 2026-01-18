@@ -141,21 +141,21 @@ export default function Capture() {
     return (
         <div className="py-6 space-y-6">
             {/* Mode Toggle */}
-            <div className="flex rounded-xl bg-white/5 p-1">
+            <div className="flex rounded-lg bg-neutral-900 p-1">
                 <button
                     onClick={() => setMode('capture')}
-                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all ${mode === 'capture'
-                            ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg'
-                            : 'text-white/60 hover:text-white'
+                    className={`flex-1 py-3 px-4 rounded-md text-sm font-bold transition-all ${mode === 'capture'
+                        ? 'bg-amber-700 text-white'
+                        : 'text-white/50 hover:text-white'
                         }`}
                 >
                     📷 Scan Receipt
                 </button>
                 <button
                     onClick={() => setMode('manual')}
-                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all ${mode === 'manual'
-                            ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg'
-                            : 'text-white/60 hover:text-white'
+                    className={`flex-1 py-3 px-4 rounded-md text-sm font-bold transition-all ${mode === 'manual'
+                        ? 'bg-amber-700 text-white'
+                        : 'text-white/50 hover:text-white'
                         }`}
                 >
                     ✏️ Manual Entry
@@ -172,7 +172,7 @@ export default function Capture() {
             {/* Capture Mode */}
             {mode === 'capture' && (
                 <div
-                    className={`card-glow p-8 text-center transition-all ${isDragging ? 'ring-2 ring-purple-500' : ''
+                    className={`card-glow p-8 text-center transition-all ${isDragging ? 'ring-2 ring-amber-600' : ''
                         }`}
                     onDrop={handleDrop}
                     onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}

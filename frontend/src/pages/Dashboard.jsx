@@ -69,20 +69,20 @@ export default function Dashboard() {
             {/* Top Tile: Total Spend + Pie Chart + Comparison */}
             <div className="card-glow p-6">
                 {/* Month Label */}
-                <p className="text-sm font-medium text-purple-300/80 mb-1">
+                <p className="text-sm font-semibold text-amber-600 uppercase tracking-wide mb-1">
                     {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </p>
 
                 {/* Total Spent */}
                 <div className="flex items-baseline gap-3 mb-6">
-                    <h2 className="text-4xl font-bold bg-gradient-to-r from-white to-purple-200 bg-clip-text text-transparent">
+                    <h2 className="text-4xl font-bold text-white">
                         {formatCurrency(summary?.current_month_total)}
                     </h2>
 
                     {/* Change indicator */}
-                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${isUp
-                        ? 'bg-red-500/20 text-red-400'
-                        : 'bg-emerald-500/20 text-emerald-400'
+                    <div className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${isUp
+                        ? 'bg-red-900/50 text-red-400'
+                        : 'bg-emerald-900/50 text-emerald-400'
                         }`}>
                         <svg
                             className={`w-3 h-3 ${isUp ? '' : 'rotate-180'}`}
