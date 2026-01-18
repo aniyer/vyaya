@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { receiptsApi } from '../api/client'
-import { saveReceipt, isOnline } from '../services/OfflineStorage'
+import { saveReceipt, isOnline, getQueue, syncQueue } from '../services/OfflineStorage'
 
 export default function Capture() {
     const navigate = useNavigate()
@@ -19,6 +19,10 @@ export default function Capture() {
     const [category, setCategory] = useState('other')
     const [manualLoading, setManualLoading] = useState(false)
 
+    // Pending receipts state
+    const [pendingReceipts, setPendingReceipts] = useState([])
+    const [syncing, setSyncing] = useState(false)
+
     const fileInputRef = useRef(null)
     const cameraInputRef = useRef(null)
 
@@ -30,6 +34,30 @@ export default function Capture() {
         }
         checkMobile()
     }, [])
+
+    // Load pending receipts
+    const loadPendingReceipts = useCallback(async () => {
+        const queue = await getQueue()
+        setPendingReceipts(queue)
+    }, [])
+
+    useEffect(() => {
+        loadPendingReceipts()
+    }, [loadPendingReceipts])
+
+    // Sync pending receipts
+    const handleSync = async () => {
+        if (syncing || pendingReceipts.length === 0) return
+        setSyncing(true)
+        try {
+            await syncQueue()
+            await loadPendingReceipts()
+        } catch (err) {
+            setError('Sync failed: ' + err.message)
+        } finally {
+            setSyncing(false)
+        }
+    }
 
     const handleFileSelect = async (file) => {
         if (!file) return
@@ -166,6 +194,53 @@ export default function Capture() {
             {error && (
                 <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
                     <p className="text-red-400 text-sm">{error}</p>
+                </div>
+            )}
+
+            {/* Pending Receipts */}
+            {pendingReceipts.length > 0 && (
+                <div className="card p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <span className="text-amber-500 text-lg">📥</span>
+                            <div>
+                                <p className="text-sm font-semibold text-white">
+                                    {pendingReceipts.length} Pending
+                                </p>
+                                <p className="text-xs text-neutral-500">
+                                    {isOnline() ? 'Ready to sync' : 'Offline'}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleSync}
+                            disabled={syncing || !isOnline()}
+                            className="px-4 py-2 rounded-lg bg-amber-600 text-black font-bold text-sm hover:bg-amber-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {syncing ? 'Syncing...' : 'Sync'}
+                        </button>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto">
+                        {pendingReceipts.slice(0, 5).map((pending) => (
+                            <div
+                                key={pending.id}
+                                className="flex-shrink-0 w-12 h-12 rounded-lg bg-neutral-800 overflow-hidden"
+                            >
+                                {pending.file && (
+                                    <img
+                                        src={URL.createObjectURL(pending.file)}
+                                        alt="Pending"
+                                        className="w-full h-full object-cover"
+                                    />
+                                )}
+                            </div>
+                        ))}
+                        {pendingReceipts.length > 5 && (
+                            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center">
+                                <span className="text-xs text-neutral-400">+{pendingReceipts.length - 5}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
