@@ -1,8 +1,8 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
-export default function CategoryPie({ data }) {
+export default function CategoryPie({ data, compact = false }) {
     if (!data || data.length === 0) {
-        return (
+        return compact ? null : (
             <div className="card p-6 text-center">
                 <p className="text-surface-400">No category data available</p>
             </div>
@@ -12,8 +12,9 @@ export default function CategoryPie({ data }) {
     // Filter categories with spending
     const chartData = data.filter((cat) => cat.total > 0)
 
+
     if (chartData.length === 0) {
-        return (
+        return compact ? null : (
             <div className="card p-6 text-center">
                 <p className="text-surface-400">No spending this month</p>
             </div>
@@ -42,21 +43,21 @@ export default function CategoryPie({ data }) {
         return null
     }
 
-    return (
-        <div className="card p-4">
-            <h3 className="text-sm font-medium text-surface-400 mb-4">By Category</h3>
+    const content = (
+        <>
+            {!compact && <h3 className="text-sm font-medium text-surface-400 mb-4">By Category</h3>}
 
             <div className="flex items-center gap-4">
                 {/* Pie Chart */}
-                <div className="w-32 h-32 flex-shrink-0">
+                <div className={compact ? "w-24 h-24 flex-shrink-0" : "w-32 h-32 flex-shrink-0"}>
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
                                 data={chartData}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={30}
-                                outerRadius={50}
+                                innerRadius={compact ? 20 : 30}
+                                outerRadius={compact ? 38 : 50}
                                 paddingAngle={2}
                                 dataKey="total"
                             >
@@ -71,27 +72,37 @@ export default function CategoryPie({ data }) {
 
                 {/* Legend */}
                 <div className="flex-1 space-y-2 overflow-hidden">
-                    {chartData.slice(0, 5).map((cat, index) => (
+                    {chartData.slice(0, compact ? 4 : 5).map((cat, index) => (
                         <div key={index} className="flex items-center gap-2 text-sm">
                             <span
                                 className="w-2 h-2 rounded-full flex-shrink-0"
                                 style={{ backgroundColor: cat.color }}
                             />
-                            <span className="truncate text-surface-300">
+                            <span className={compact ? "truncate text-white/70 text-xs" : "truncate text-surface-300"}>
                                 {cat.icon} {cat.category_name}
                             </span>
-                            <span className="ml-auto font-medium text-white flex-shrink-0">
+                            <span className={compact ? "ml-auto font-medium text-white text-xs flex-shrink-0" : "ml-auto font-medium text-white flex-shrink-0"}>
                                 ${cat.total.toFixed(0)}
                             </span>
                         </div>
                     ))}
-                    {chartData.length > 5 && (
+                    {chartData.length > (compact ? 4 : 5) && (
                         <p className="text-xs text-surface-500">
-                            +{chartData.length - 5} more categories
+                            +{chartData.length - (compact ? 4 : 5)} more
                         </p>
                     )}
                 </div>
             </div>
+        </>
+    )
+
+    if (compact) {
+        return content
+    }
+
+    return (
+        <div className="card p-4">
+            {content}
         </div>
     )
 }

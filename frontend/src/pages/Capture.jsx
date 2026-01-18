@@ -1,75 +1,305 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Camera from '../components/Camera'
 import { receiptsApi } from '../api/client'
+import { saveReceipt, isOnline } from '../services/OfflineStorage'
 
 export default function Capture() {
     const navigate = useNavigate()
+    const [mode, setMode] = useState('capture') // 'capture' or 'manual'
     const [uploading, setUploading] = useState(false)
-    const [uploadResult, setUploadResult] = useState(null)
     const [error, setError] = useState(null)
-    const [saving, setSaving] = useState(false)
+    const [savedOffline, setSavedOffline] = useState(false)
+    const [isDragging, setIsDragging] = useState(false)
+    const [isMobile, setIsMobile] = useState(false)
 
-    const handleCapture = async (file) => {
+    // Manual entry state
+    const [vendor, setVendor] = useState('')
+    const [total, setTotal] = useState('')
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+    const [category, setCategory] = useState('other')
+    const [manualLoading, setManualLoading] = useState(false)
+
+    const fileInputRef = useRef(null)
+    const cameraInputRef = useRef(null)
+
+    useEffect(() => {
+        const checkMobile = () => {
+            const userAgent = navigator.userAgent || navigator.vendor || window.opera
+            const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i
+            setIsMobile(mobileRegex.test(userAgent.toLowerCase()))
+        }
+        checkMobile()
+    }, [])
+
+    const handleFileSelect = async (file) => {
+        if (!file) return
+
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+        if (!validTypes.includes(file.type)) {
+            setError('Please select a valid image (JPEG, PNG, WebP, or HEIC)')
+            return
+        }
+
         setUploading(true)
         setError(null)
+        setSavedOffline(false)
+
+        if (!isOnline()) {
+            try {
+                await saveReceipt(file)
+                setSavedOffline(true)
+                setUploading(false)
+                setTimeout(() => navigate('/receipts'), 1500)
+                return
+            } catch (err) {
+                setError('Failed to save offline: ' + err.message)
+                setUploading(false)
+                return
+            }
+        }
 
         try {
             const result = await receiptsApi.upload(file)
-            // Redirect immediately to detail page which handles polling
             navigate(`/receipts/${result.receipt.id}`)
         } catch (err) {
+            const isNetworkError =
+                !navigator.onLine ||
+                err.code === 'ERR_NETWORK' ||
+                err.code === 'ECONNABORTED' ||
+                err.code === 'ETIMEDOUT' ||
+                err.message?.includes('Network Error') ||
+                err.message?.includes('timeout') ||
+                err.message?.includes('net::') ||
+                err.message?.includes('Failed to fetch') ||
+                !err.response
+
+            if (isNetworkError) {
+                try {
+                    await saveReceipt(file)
+                    setSavedOffline(true)
+                    setUploading(false)
+                    setTimeout(() => navigate('/receipts'), 1500)
+                    return
+                } catch (offlineErr) {
+                    setError('Failed to save offline: ' + offlineErr.message)
+                    setUploading(false)
+                    return
+                }
+            }
             setError(err.response?.data?.detail || err.message || 'Upload failed')
             setUploading(false)
         }
     }
 
-    const handleSkip = () => {
-        if (uploadResult?.receipt?.id) {
-            navigate(`/receipts/${uploadResult.receipt.id}`)
+    const handleInputChange = (e) => {
+        const file = e.target.files?.[0]
+        handleFileSelect(file)
+    }
+
+    const handleDrop = (e) => {
+        e.preventDefault()
+        setIsDragging(false)
+        const file = e.dataTransfer.files?.[0]
+        handleFileSelect(file)
+    }
+
+    const handleManualSubmit = async (e) => {
+        e.preventDefault()
+        if (!vendor.trim() || !total) {
+            setError('Please fill in vendor and total')
+            return
+        }
+
+        setManualLoading(true)
+        setError(null)
+
+        try {
+            const newReceipt = await receiptsApi.create({
+                vendor_name: vendor.trim(),
+                total: parseFloat(total),
+                date: date,
+                category: category,
+            })
+            navigate(`/receipts/${newReceipt.id}`)
+        } catch (err) {
+            setError('Failed to create receipt')
+            setManualLoading(false)
         }
     }
 
-    const startNew = () => {
-        setUploadResult(null)
-        setError(null)
-    }
+    const categories = [
+        { value: 'groceries', label: '🛒 Groceries' },
+        { value: 'dining', label: '🍽️ Dining' },
+        { value: 'transport', label: '🚗 Transport' },
+        { value: 'shopping', label: '🛍️ Shopping' },
+        { value: 'utilities', label: '💡 Utilities' },
+        { value: 'entertainment', label: '🎬 Entertainment' },
+        { value: 'health', label: '💊 Health' },
+        { value: 'other', label: '📝 Other' },
+    ]
 
     return (
         <div className="py-6 space-y-6">
-            {/* Header */}
-            <div className="flex justify-end p-2">
+            {/* Mode Toggle */}
+            <div className="flex rounded-xl bg-white/5 p-1">
                 <button
-                    onClick={() => navigate('/manual')}
-                    className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-sm font-medium hover:bg-white/20 transition-colors"
+                    onClick={() => setMode('capture')}
+                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all ${mode === 'capture'
+                            ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg'
+                            : 'text-white/60 hover:text-white'
+                        }`}
                 >
-                    Enter Manually
+                    📷 Scan Receipt
                 </button>
-            </div>
-            <div>
-                <h2 className="text-2xl font-bold text-white mb-1">Capture Receipt</h2>
-                <p className="text-surface-400">
-                    {uploadResult ? 'Review extracted data' : 'Take a photo or upload an image'}
-                </p>
+                <button
+                    onClick={() => setMode('manual')}
+                    className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all ${mode === 'manual'
+                            ? 'bg-gradient-to-r from-purple-500 to-cyan-500 text-white shadow-lg'
+                            : 'text-white/60 hover:text-white'
+                        }`}
+                >
+                    ✏️ Manual Entry
+                </button>
             </div>
 
             {/* Error display */}
             {error && (
-                <div className="card p-4 bg-red-500/10 border-red-500/50">
+                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
                     <p className="text-red-400 text-sm">{error}</p>
                 </div>
             )}
 
-            {/* Main content */}
-            <Camera onCapture={handleCapture} disabled={uploading} />
+            {/* Capture Mode */}
+            {mode === 'capture' && (
+                <div
+                    className={`card-glow p-8 text-center transition-all ${isDragging ? 'ring-2 ring-purple-500' : ''
+                        }`}
+                    onDrop={handleDrop}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+                    onDragLeave={() => setIsDragging(false)}
+                >
+                    {uploading && !savedOffline ? (
+                        <div className="py-8">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-full border-3 border-purple-500 border-t-transparent animate-spin" />
+                            <p className="text-white font-medium">Processing...</p>
+                        </div>
+                    ) : savedOffline ? (
+                        <div className="py-8">
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                <span className="text-3xl">📥</span>
+                            </div>
+                            <p className="text-amber-400 font-medium mb-1">Saved to Queue</p>
+                            <p className="text-sm text-white/50">Will upload when online</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-500/30 to-cyan-500/20 flex items-center justify-center">
+                                <span className="text-4xl">📷</span>
+                            </div>
 
-            {/* Processing indicator */}
-            {uploading && (
-                <div className="card p-6 text-center mt-6">
-                    <div className="w-12 h-12 mx-auto mb-4 rounded-full border-2 border-primary-500 border-t-transparent animate-spin" />
-                    <p className="text-white font-medium mb-1">Uploading Receipt</p>
-                    <p className="text-sm text-surface-400">Please wait...</p>
+                            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
+                                {isMobile ? (
+                                    <>
+                                        <label className="btn-primary cursor-pointer inline-flex items-center justify-center gap-2">
+                                            📸 Take Photo
+                                            <input
+                                                ref={cameraInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                capture="environment"
+                                                className="hidden"
+                                                onChange={handleInputChange}
+                                            />
+                                        </label>
+                                        <label className="btn-secondary cursor-pointer inline-flex items-center justify-center gap-2">
+                                            🖼️ Gallery
+                                            <input
+                                                ref={fileInputRef}
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={handleInputChange}
+                                            />
+                                        </label>
+                                    </>
+                                ) : (
+                                    <label className="btn-primary cursor-pointer inline-flex items-center justify-center gap-2 px-8">
+                                        Choose Image
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={handleInputChange}
+                                        />
+                                    </label>
+                                )}
+                            </div>
+
+                            <p className="text-xs text-white/40">
+                                {isMobile ? 'or choose from gallery' : 'or drag and drop'}
+                            </p>
+                        </>
+                    )}
                 </div>
+            )}
+
+            {/* Manual Mode */}
+            {mode === 'manual' && (
+                <form onSubmit={handleManualSubmit} className="card p-6 space-y-4">
+                    <div>
+                        <input
+                            type="text"
+                            placeholder="Vendor name"
+                            value={vendor}
+                            onChange={(e) => setVendor(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <input
+                                type="number"
+                                step="0.01"
+                                placeholder="Total $"
+                                value={total}
+                                onChange={(e) => setTotal(e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                        </div>
+                        <div>
+                            <input
+                                type="date"
+                                value={date}
+                                onChange={(e) => setDate(e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                            {categories.map((cat) => (
+                                <option key={cat.value} value={cat.value} className="bg-gray-900">
+                                    {cat.label}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={manualLoading}
+                        className="w-full btn-primary py-4 disabled:opacity-50"
+                    >
+                        {manualLoading ? 'Saving...' : 'Save Receipt'}
+                    </button>
+                </form>
             )}
         </div>
     )
