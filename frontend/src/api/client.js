@@ -7,6 +7,7 @@ const client = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
+    timeout: 10000, // 10 second timeout for all requests
 })
 
 // Receipts API
@@ -16,6 +17,7 @@ export const receiptsApi = {
         formData.append('file', file)
         const response = await client.post('/receipts/upload', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 15000, // 15 second timeout for uploads (larger files)
         })
         return response.data
     },

@@ -90,13 +90,22 @@ export default function Capture() {
         }
 
         try {
+            console.log('Attempting upload to backend...')
             const result = await receiptsApi.upload(file)
+            console.log('Upload successful:', result)
             navigate(`/receipts/${result.receipt.id}`)
         } catch (err) {
             // On ANY upload failure, save locally as fallback
-            console.log('Upload failed, saving offline:', err.message || err)
+            console.error('Upload failed:', {
+                message: err.message,
+                code: err.code,
+                response: err.response?.status,
+                data: err.response?.data,
+            })
+            console.log('Saving to offline queue...')
             try {
                 await saveReceipt(file)
+                console.log('Saved to offline queue successfully')
                 setSavedOffline(true)
                 setUploading(false)
                 // Refresh pending list to show newly queued receipt
@@ -105,6 +114,7 @@ export default function Capture() {
                 setTimeout(() => setSavedOffline(false), 3000)
                 return
             } catch (offlineErr) {
+                console.error('Failed to save offline:', offlineErr)
                 setError('Failed to save: ' + offlineErr.message)
                 setUploading(false)
                 return
