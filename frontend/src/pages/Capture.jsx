@@ -190,53 +190,6 @@ export default function Capture() {
                 </div>
             )}
 
-            {/* Pending Receipts */}
-            {pendingReceipts.length > 0 && (
-                <div className="card p-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <span className="text-amber-500 text-lg">📥</span>
-                            <div>
-                                <p className="text-sm font-semibold text-white">
-                                    {pendingReceipts.length} Pending
-                                </p>
-                                <p className="text-xs text-neutral-500">
-                                    {isOnline() ? 'Ready to sync' : 'Offline'}
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleSync}
-                            disabled={syncing || !isOnline()}
-                            className="px-4 py-2 rounded-lg bg-amber-600 text-black font-bold text-sm hover:bg-amber-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {syncing ? 'Syncing...' : 'Sync'}
-                        </button>
-                    </div>
-                    <div className="flex gap-2 overflow-x-auto">
-                        {pendingReceipts.slice(0, 5).map((pending) => (
-                            <div
-                                key={pending.id}
-                                className="flex-shrink-0 w-12 h-12 rounded-lg bg-neutral-800 overflow-hidden"
-                            >
-                                {pending.file && (
-                                    <img
-                                        src={URL.createObjectURL(pending.file)}
-                                        alt="Pending"
-                                        className="w-full h-full object-cover"
-                                    />
-                                )}
-                            </div>
-                        ))}
-                        {pendingReceipts.length > 5 && (
-                            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center">
-                                <span className="text-xs text-neutral-400">+{pendingReceipts.length - 5}</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-
             {/* Capture Mode */}
             {mode === 'capture' && (
                 <div
@@ -248,7 +201,7 @@ export default function Capture() {
                 >
                     {uploading && !savedOffline ? (
                         <div className="py-8">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-full border-3 border-purple-500 border-t-transparent animate-spin" />
+                            <div className="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-amber-600 border-t-transparent animate-spin" />
                             <p className="text-white font-medium">Processing...</p>
                         </div>
                     ) : savedOffline ? (
@@ -261,7 +214,7 @@ export default function Capture() {
                         </div>
                     ) : (
                         <>
-                            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-purple-500/30 to-cyan-500/20 flex items-center justify-center">
+                            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-amber-900/30 flex items-center justify-center">
                                 <span className="text-4xl">📷</span>
                             </div>
 
@@ -321,7 +274,7 @@ export default function Capture() {
                             placeholder="Vendor name"
                             value={vendor}
                             onChange={(e) => setVendor(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-amber-600"
                         />
                     </div>
 
@@ -333,7 +286,7 @@ export default function Capture() {
                                 placeholder="Total $"
                                 value={total}
                                 onChange={(e) => setTotal(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-amber-600"
                             />
                         </div>
                         <div>
@@ -341,7 +294,7 @@ export default function Capture() {
                                 type="date"
                                 value={date}
                                 onChange={(e) => setDate(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-amber-600"
                             />
                         </div>
                     </div>
@@ -350,7 +303,7 @@ export default function Capture() {
                         <select
                             value={category}
                             onChange={(e) => setCategory(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-amber-600"
                         >
                             {categories.map((cat) => (
                                 <option key={cat.value} value={cat.value} className="bg-gray-900">
@@ -368,6 +321,53 @@ export default function Capture() {
                         {manualLoading ? 'Saving...' : 'Save Receipt'}
                     </button>
                 </form>
+            )}
+
+            {/* Pending Receipts - shown below capture area */}
+            {pendingReceipts.length > 0 && (
+                <div className="card p-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                            <span className="text-amber-500 text-lg">📥</span>
+                            <div>
+                                <p className="text-sm font-semibold text-white">
+                                    {pendingReceipts.length} Pending
+                                </p>
+                                <p className="text-xs text-neutral-500">
+                                    {isOnline() ? 'Ready to sync' : 'Offline'}
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={handleSync}
+                            disabled={syncing || !isOnline()}
+                            className="px-4 py-2 rounded-lg bg-amber-600 text-black font-bold text-sm hover:bg-amber-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {syncing ? 'Syncing...' : 'Sync'}
+                        </button>
+                    </div>
+                    <div className="flex gap-2 overflow-x-auto">
+                        {pendingReceipts.slice(0, 5).map((pending) => (
+                            <div
+                                key={pending.id}
+                                className="flex-shrink-0 w-12 h-12 rounded-lg bg-neutral-800 overflow-hidden"
+                            >
+                                {pending.file && (
+                                    <img
+                                        src={URL.createObjectURL(pending.file)}
+                                        alt="Pending"
+                                        className="w-full h-full object-cover"
+                                    />
+                                )}
+                            </div>
+                        ))}
+                        {pendingReceipts.length > 5 && (
+                            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center">
+                                <span className="text-xs text-neutral-400">+{pendingReceipts.length - 5}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
             )}
         </div>
     )
