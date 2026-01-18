@@ -45,12 +45,17 @@ export default function Layout({ children }) {
         <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#0a0a0a' }}>
             {/* Header */}
             <header className="sticky top-0 z-40 border-b border-neutral-800 safe-top" style={{ backgroundColor: '#0a0a0a' }}>
-                <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+                <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src="/pwa-192x192.png" alt="Vyaya Logo" className="w-8 h-8 rounded-lg" />
-                        <h1 className="text-xl font-bold text-amber-500">
-                            Vyaya
-                        </h1>
+                        <img src="/pwa-192x192.png" alt="Vyaya" className="w-10 h-10 rounded-xl" />
+                        <div>
+                            <h1 className="text-lg font-black tracking-tight text-amber-500">
+                                VYAYA
+                            </h1>
+                            <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-widest -mt-0.5">
+                                Expense Tracker
+                            </p>
+                        </div>
                     </div>
                 </div>
             </header>
