@@ -141,6 +141,8 @@ export async function getQueueCount() {
     return queue.length
 }
 
+let isSyncing = false
+
 /**
  * Sync all pending receipts to the server
  * @param {Function} onProgress - Optional callback (uploaded, total) for progress updates
@@ -148,47 +150,60 @@ export async function getQueueCount() {
  * @returns {Promise<{success: number, failed: number}>}
  */
 export async function syncQueue(onProgress, onError) {
-    const queue = await getQueue()
-    const total = queue.length
-    let success = 0
-    let failed = 0
-
-    console.log('Starting sync of', total, 'receipts')
-
-    for (let i = 0; i < queue.length; i++) {
-        const receipt = queue[i]
-        try {
-            if (receipt.isManual) {
-                console.log('Syncing manual receipt:', receipt.id)
-                await receiptsApi.create(receipt.data)
-            } else {
-                if (!receipt.file) {
-                    console.error('No file for receipt:', receipt.id)
-                    failed++
-                    continue
-                }
-                console.log('Uploading receipt file:', receipt.id)
-                await receiptsApi.upload(receipt.file)
-            }
-
-            await removeReceipt(receipt.id)
-            success++
-            console.log('Successfully synced:', receipt.id)
-        } catch (err) {
-            console.error('Failed to sync receipt:', receipt.id, err)
-            failed++
-            if (onError) {
-                onError(receipt, err)
-            }
-        }
-
-        if (onProgress) {
-            onProgress(i + 1, total)
-        }
+    if (isSyncing) {
+        console.log('Sync already in progress, skipping')
+        return { success: 0, failed: 0 }
     }
 
-    console.log('Sync complete:', success, 'success,', failed, 'failed')
-    return { success, failed }
+    try {
+        isSyncing = true
+        const queue = await getQueue()
+        const total = queue.length
+
+        if (total === 0) return { success: 0, failed: 0 }
+
+        let success = 0
+        let failed = 0
+
+        console.log('Starting sync of', total, 'receipts')
+
+        for (let i = 0; i < queue.length; i++) {
+            const receipt = queue[i]
+            try {
+                if (receipt.isManual) {
+                    console.log('Syncing manual receipt:', receipt.id)
+                    await receiptsApi.create(receipt.data)
+                } else {
+                    if (!receipt.file) {
+                        console.error('No file for receipt:', receipt.id)
+                        failed++
+                        continue
+                    }
+                    console.log('Uploading receipt file:', receipt.id)
+                    await receiptsApi.upload(receipt.file)
+                }
+
+                await removeReceipt(receipt.id)
+                success++
+                console.log('Successfully synced:', receipt.id)
+            } catch (err) {
+                console.error('Failed to sync receipt:', receipt.id, err)
+                failed++
+                if (onError) {
+                    onError(receipt, err)
+                }
+            }
+
+            if (onProgress) {
+                onProgress(i + 1, total)
+            }
+        }
+
+        console.log('Sync complete:', success, 'success,', failed, 'failed')
+        return { success, failed }
+    } finally {
+        isSyncing = false
+    }
 }
 
 /**

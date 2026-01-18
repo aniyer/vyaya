@@ -1,5 +1,7 @@
 import { NavLink, useLocation } from 'react-router-dom'
 import { useOfflineMode } from '../context/OfflineModeContext'
+import { syncQueue, getQueueCount } from '../services/OfflineStorage'
+import { useEffect } from 'react'
 
 const navItems = [
     { path: '/', label: 'Dashboard', icon: DashboardIcon },
@@ -42,6 +44,20 @@ function ReceiptIcon({ className }) {
 export default function Layout({ children }) {
     const location = useLocation()
     const { offlineMode } = useOfflineMode()
+
+    // Auto-sync when coming online
+    useEffect(() => {
+        if (!offlineMode) {
+            const attemptSync = async () => {
+                const count = await getQueueCount()
+                if (count > 0) {
+                    console.log('Online detected, auto-syncing queue...')
+                    await syncQueue()
+                }
+            }
+            attemptSync()
+        }
+    }, [offlineMode])
 
     return (
         <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#0a0a0a' }}>
