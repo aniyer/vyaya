@@ -49,25 +49,18 @@ export default function Layout({ children }) {
             <header className="sticky top-0 z-40 border-b border-neutral-800 safe-top" style={{ backgroundColor: '#0a0a0a' }}>
                 <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src="/pwa-192x192.png?v=2" alt="Vyaya" className="w-10 h-10 rounded-xl" />
-                        <div>
-                            <h1 className="text-lg font-black tracking-tight text-amber-500">
+                        <img src="/pwa-192x192.png?v=2" alt="Vyaya" className="w-8 h-8 rounded-lg" />
+                        <div className="flex items-center gap-2">
+                            <h1 className="text-xl font-black tracking-tight text-amber-500">
                                 VYAYA
                             </h1>
-                            <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-widest -mt-0.5">
-                                Expense Tracker
-                            </p>
+                            {/* Subtle Status Indicator */}
+                            <div
+                                className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${offlineMode ? 'bg-amber-500 animate-pulse' : 'bg-green-500/30'
+                                    }`}
+                                title={offlineMode ? 'Offline' : 'Online'}
+                            />
                         </div>
-                    </div>
-
-                    <div
-                        className={`flex items-center justify-center w-8 h-8 rounded-full transition-all ${offlineMode
-                            ? 'bg-amber-500/20 border border-amber-500/50'
-                            : 'bg-green-500/20 border border-green-500/50'
-                            }`}
-                        title={offlineMode ? 'Offline' : 'Online'}
-                    >
-                        <span className={`w-2.5 h-2.5 rounded-full ${offlineMode ? 'bg-amber-500' : 'bg-green-500'}`} />
                     </div>
                 </div>
             </header>
