@@ -2,9 +2,11 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { receiptsApi } from '../api/client'
 import { saveReceipt, isOnline, getQueue, syncQueue } from '../services/OfflineStorage'
+import { useOfflineMode } from '../context/OfflineModeContext'
 
 export default function Capture() {
     const navigate = useNavigate()
+    const { offlineMode } = useOfflineMode()
     const [mode, setMode] = useState('capture') // 'capture' or 'manual'
     const [uploading, setUploading] = useState(false)
     const [error, setError] = useState(null)
@@ -72,7 +74,7 @@ export default function Capture() {
         setError(null)
         setSavedOffline(false)
 
-        if (!isOnline()) {
+        if (offlineMode || !isOnline()) {
             try {
                 await saveReceipt(file)
                 setSavedOffline(true)
