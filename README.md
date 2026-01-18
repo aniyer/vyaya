@@ -11,6 +11,11 @@ A self-hosted, mobile-first web application for receipt management and expense t
 - 📊 **Expense Dashboard**: Visualize spending trends and category breakdowns
 - ✏️ **Manual Override**: Edit extracted data when OCR makes mistakes
 - 🏷️ **Auto-Categorization**: Intelligent category assignment based on vendor names
+- 🔌 **Offline Mode**: 
+    - Automatic offline detection via health checks
+    - Capture/Enter receipts without internet connection
+    - Automatic background sync when connection is restored
+- 🎨 **Modern UI**: Clean, flat design logic with dark mode aesthetics
 - 🐳 **Self-Hosted**: Run on your own hardware with Docker
 
 ## Quick Start
@@ -102,6 +107,14 @@ The dashboard shows:
 - View all receipts in the **History** tab
 - Click a receipt to view details
 - Edit or delete receipts as needed
+
+### Offline Mode
+
+Vyaya automatically detects when your backend server is unreachable. In Offline Mode:
+- The status indicator next to the logo turns **Amber** (pulsing)
+- You can still scan or manually enter receipts
+- Receipts are saved to a local queue
+- When connection is restored (Green indicator), the queue syncs automatically in the background
 
 ## Development
 

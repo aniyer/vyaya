@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { receiptsApi, dashboardApi } from '../api/client'
+import { useOfflineMode } from '../context/OfflineModeContext'
 
 /**
  * Hook for fetching and managing receipts list
  */
 export function useReceipts(initialParams = {}) {
+    const { offlineMode } = useOfflineMode()
     const [receipts, setReceipts] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -21,6 +23,12 @@ export function useReceipts(initialParams = {}) {
     const fetchReceipts = useCallback(async (params = {}) => {
         setLoading(true)
         setError(null)
+
+        if (offlineMode) {
+            setLoading(false)
+            return
+        }
+
         try {
             const data = await receiptsApi.list({
                 per_page: 10,
@@ -39,7 +47,7 @@ export function useReceipts(initialParams = {}) {
         } finally {
             setLoading(false)
         }
-    }, [paramsKey])
+    }, [paramsKey, offlineMode])
 
     useEffect(() => {
         fetchReceipts()
@@ -99,6 +107,7 @@ export function useReceipt(id) {
  * Hook for dashboard data
  */
 export function useDashboard() {
+    const { offlineMode } = useOfflineMode()
     const [summary, setSummary] = useState(null)
     const [trends, setTrends] = useState(null)
     const [loading, setLoading] = useState(true)
@@ -107,6 +116,12 @@ export function useDashboard() {
     const fetchDashboard = useCallback(async () => {
         setLoading(true)
         setError(null)
+
+        if (offlineMode) {
+            setLoading(false)
+            return
+        }
+
         try {
             const [summaryData, trendsData] = await Promise.all([
                 dashboardApi.getSummary(),
@@ -119,7 +134,7 @@ export function useDashboard() {
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [offlineMode])
 
     useEffect(() => {
         fetchDashboard()

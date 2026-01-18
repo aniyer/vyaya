@@ -3,8 +3,10 @@ import { Link } from 'react-router-dom'
 import { useReceipts } from '../hooks/useReceipts'
 import ReceiptCard from '../components/ReceiptCard'
 import { getQueue, syncQueue, isOnline } from '../services/OfflineStorage'
+import { useOfflineMode } from '../context/OfflineModeContext'
 
 export default function Receipts() {
+    const { offlineMode } = useOfflineMode()
     const [search, setSearch] = useState('')
     const [dateRange, setDateRange] = useState('this_week')
     const [customStart, setCustomStart] = useState('')
@@ -280,7 +282,9 @@ export default function Receipts() {
                     </div>
                     <h3 className="text-lg font-medium text-white mb-2">No receipts found</h3>
                     <p className="text-surface-400 mb-4">
-                        Try adjusting your filters or search terms
+                        {offlineMode
+                            ? "You are currently in Offline Mode. Receipts captured will appear here after you go online and sync."
+                            : "Try adjusting your filters or search terms"}
                     </p>
                     {search || dateRange !== 'this_week' ? (
                         <button
