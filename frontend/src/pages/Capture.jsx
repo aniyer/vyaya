@@ -93,35 +93,22 @@ export default function Capture() {
             const result = await receiptsApi.upload(file)
             navigate(`/receipts/${result.receipt.id}`)
         } catch (err) {
-            const isNetworkError =
-                !navigator.onLine ||
-                err.code === 'ERR_NETWORK' ||
-                err.code === 'ECONNABORTED' ||
-                err.code === 'ETIMEDOUT' ||
-                err.message?.includes('Network Error') ||
-                err.message?.includes('timeout') ||
-                err.message?.includes('net::') ||
-                err.message?.includes('Failed to fetch') ||
-                !err.response
-
-            if (isNetworkError) {
-                try {
-                    await saveReceipt(file)
-                    setSavedOffline(true)
-                    setUploading(false)
-                    // Refresh pending list to show newly queued receipt
-                    await loadPendingReceipts()
-                    // Clear the success message after a few seconds
-                    setTimeout(() => setSavedOffline(false), 3000)
-                    return
-                } catch (offlineErr) {
-                    setError('Failed to save offline: ' + offlineErr.message)
-                    setUploading(false)
-                    return
-                }
+            // On ANY upload failure, save locally as fallback
+            console.log('Upload failed, saving offline:', err.message || err)
+            try {
+                await saveReceipt(file)
+                setSavedOffline(true)
+                setUploading(false)
+                // Refresh pending list to show newly queued receipt
+                await loadPendingReceipts()
+                // Clear the success message after a few seconds
+                setTimeout(() => setSavedOffline(false), 3000)
+                return
+            } catch (offlineErr) {
+                setError('Failed to save: ' + offlineErr.message)
+                setUploading(false)
+                return
             }
-            setError(err.response?.data?.detail || err.message || 'Upload failed')
-            setUploading(false)
         }
     }
 
