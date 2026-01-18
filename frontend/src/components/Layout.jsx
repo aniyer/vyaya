@@ -41,7 +41,7 @@ function ReceiptIcon({ className }) {
 
 export default function Layout({ children }) {
     const location = useLocation()
-    const { offlineMode, toggleOfflineMode } = useOfflineMode()
+    const { offlineMode, toggleOfflineMode, forcedOffline } = useOfflineMode()
 
     return (
         <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#0a0a0a' }}>
@@ -63,12 +63,14 @@ export default function Layout({ children }) {
                     <button
                         onClick={toggleOfflineMode}
                         className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${offlineMode
-                                ? 'bg-amber-500/20 text-amber-500 border border-amber-500/50'
-                                : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
+                            ? 'bg-amber-500/20 text-amber-500 border border-amber-500/50'
+                            : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
                             }`}
                     >
                         <span className={`w-2 h-2 rounded-full ${offlineMode ? 'bg-amber-500' : 'bg-green-500'}`} />
-                        {offlineMode ? 'Offline Mode' : 'Online'}
+                        {offlineMode
+                            ? (forcedOffline ? 'Offline (Manual)' : 'Offline (Auto)')
+                            : 'Online'}
                     </button>
                 </div>
             </header>
