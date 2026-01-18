@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { receiptsApi } from '../api/client'
-import { saveReceipt, isOnline, getQueue, syncQueue } from '../services/OfflineStorage'
+import { saveReceipt, saveManualReceipt, isOnline, getQueue, syncQueue } from '../services/OfflineStorage'
 import { useOfflineMode } from '../context/OfflineModeContext'
 
 export default function Capture() {
@@ -143,20 +143,54 @@ export default function Capture() {
             return
         }
 
+        const receiptData = {
+            vendor: vendor.trim(),
+            amount: parseFloat(total),
+            transaction_date: date,
+            // TODO: Map category string to category_id
+        }
+
+        if (offlineMode || !isOnline()) {
+            try {
+                await saveManualReceipt(receiptData)
+                setSavedOffline(true)
+                setManualLoading(false)
+                // Refresh pending list
+                await loadPendingReceipts()
+                // Clear form
+                setVendor('')
+                setTotal('')
+                // Clear success message
+                setTimeout(() => setSavedOffline(false), 3000)
+                return
+            } catch (err) {
+                setError('Failed to save offline: ' + err.message)
+                setManualLoading(false)
+                return
+            }
+        }
+
         setManualLoading(true)
         setError(null)
 
         try {
-            const newReceipt = await receiptsApi.create({
-                vendor_name: vendor.trim(),
-                total: parseFloat(total),
-                date: date,
-                category: category,
-            })
+            const newReceipt = await receiptsApi.create(receiptData)
             navigate(`/receipts/${newReceipt.id}`)
         } catch (err) {
-            setError('Failed to create receipt')
-            setManualLoading(false)
+            console.error('Manual creation failed:', err)
+            // Fallback to offline save
+            try {
+                await saveManualReceipt(receiptData)
+                setSavedOffline(true)
+                setManualLoading(false)
+                await loadPendingReceipts()
+                setVendor('')
+                setTotal('')
+                setTimeout(() => setSavedOffline(false), 3000)
+            } catch (offlineErr) {
+                setError('Failed to save receipt: ' + offlineErr.message)
+                setManualLoading(false)
+            }
         }
     }
 

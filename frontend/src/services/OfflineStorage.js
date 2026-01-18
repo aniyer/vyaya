@@ -28,6 +28,26 @@ async function fileToArrayBuffer(file) {
  * @param {File|Blob} file - The receipt image file
  * @returns {Promise<string>} - The temporary ID of the saved receipt
  */
+/**
+ * Save manual receipt data to the offline queue
+ * @param {Object} data - The receipt data (vendor, amount, date, etc)
+ * @returns {Promise<string>} - The temporary ID of the saved receipt
+ */
+export async function saveManualReceipt(data) {
+    const tempId = generateTempId()
+
+    const receipt = {
+        id: tempId,
+        data: data,
+        isManual: true,
+        timestamp: new Date().toISOString(),
+    }
+
+    await set(tempId, receipt)
+    console.log('Manual receipt saved offline:', tempId)
+    return tempId
+}
+
 export async function saveReceipt(file) {
     const tempId = generateTempId()
 
@@ -39,6 +59,7 @@ export async function saveReceipt(file) {
         arrayBuffer: arrayBuffer,
         filename: file.name || 'receipt.jpg',
         type: file.type || 'image/jpeg',
+        isManual: false,
         timestamp: new Date().toISOString(),
     }
 
@@ -64,6 +85,16 @@ export async function getQueue() {
                 const stored = await get(key)
                 if (!stored) return null
 
+                // Handle manual receipts
+                if (stored.isManual) {
+                    return {
+                        id: stored.id,
+                        data: stored.data,
+                        isManual: true,
+                        timestamp: stored.timestamp,
+                    }
+                }
+
                 // Reconstruct File from ArrayBuffer
                 let file = null
                 if (stored.arrayBuffer) {
@@ -76,6 +107,7 @@ export async function getQueue() {
                     file: file,
                     filename: stored.filename,
                     type: stored.type,
+                    isManual: false,
                     timestamp: stored.timestamp,
                 }
             } catch (err) {
@@ -87,7 +119,7 @@ export async function getQueue() {
 
     // Sort by timestamp, oldest first
     return receipts
-        .filter(r => r !== null && r.file !== null)
+        .filter(r => r !== null) // Removed receipt.file check to allow manual receipts
         .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
 }
 
@@ -126,19 +158,24 @@ export async function syncQueue(onProgress, onError) {
     for (let i = 0; i < queue.length; i++) {
         const receipt = queue[i]
         try {
-            if (!receipt.file) {
-                console.error('No file for receipt:', receipt.id)
-                failed++
-                continue
+            if (receipt.isManual) {
+                console.log('Syncing manual receipt:', receipt.id)
+                await receiptsApi.create(receipt.data)
+            } else {
+                if (!receipt.file) {
+                    console.error('No file for receipt:', receipt.id)
+                    failed++
+                    continue
+                }
+                console.log('Uploading receipt file:', receipt.id)
+                await receiptsApi.upload(receipt.file)
             }
 
-            console.log('Uploading receipt:', receipt.id)
-            await receiptsApi.upload(receipt.file)
             await removeReceipt(receipt.id)
             success++
-            console.log('Successfully uploaded:', receipt.id)
+            console.log('Successfully synced:', receipt.id)
         } catch (err) {
-            console.error('Failed to upload receipt:', receipt.id, err)
+            console.error('Failed to sync receipt:', receipt.id, err)
             failed++
             if (onError) {
                 onError(receipt, err)
