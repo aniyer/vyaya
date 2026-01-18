@@ -42,15 +42,20 @@ export default function Layout({ children }) {
     const location = useLocation()
 
     return (
-        <div className="min-h-screen bg-surface-900 flex flex-col">
+        <div className="min-h-screen flex flex-col" style={{ backgroundColor: '#0a0a0a' }}>
             {/* Header */}
-            <header className="sticky top-0 z-40 bg-surface-900/80 backdrop-blur-lg border-b border-surface-800 safe-top">
-                <div className="max-w-lg mx-auto px-4 py-4 flex items-center justify-between">
+            <header className="sticky top-0 z-40 border-b border-neutral-800 safe-top" style={{ backgroundColor: '#0a0a0a' }}>
+                <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src="/pwa-192x192.png" alt="Vyaya Logo" className="w-8 h-8 rounded-lg shadow-lg shadow-primary-500/20" />
-                        <h1 className="text-xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
-                            Vyaya
-                        </h1>
+                        <img src="/pwa-192x192.png?v=2" alt="Vyaya" className="w-10 h-10 rounded-xl" />
+                        <div>
+                            <h1 className="text-lg font-black tracking-tight text-amber-500">
+                                VYAYA
+                            </h1>
+                            <p className="text-[10px] font-semibold text-neutral-500 uppercase tracking-widest -mt-0.5">
+                                Expense Tracker
+                            </p>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -63,7 +68,7 @@ export default function Layout({ children }) {
             </main>
 
             {/* Bottom navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 z-50 bg-surface-900/90 backdrop-blur-lg border-t border-surface-800 safe-bottom">
+            <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-800 safe-bottom" style={{ backgroundColor: '#0a0a0a' }}>
                 <div className="max-w-lg mx-auto px-4">
                     <div className="flex items-center justify-around py-2">
                         {navItems.map(({ path, label, icon: Icon }) => (
@@ -71,14 +76,14 @@ export default function Layout({ children }) {
                                 key={path}
                                 to={path}
                                 className={({ isActive }) =>
-                                    `flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-all duration-200 ${isActive
-                                        ? 'text-primary-400 bg-primary-500/10'
-                                        : 'text-surface-400 hover:text-surface-200'
+                                    `flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${isActive
+                                        ? 'text-amber-500'
+                                        : 'text-neutral-500 hover:text-neutral-300'
                                     }`
                                 }
                             >
                                 <Icon className="w-6 h-6" />
-                                <span className="text-xs font-medium">{label}</span>
+                                <span className="text-xs font-semibold">{label}</span>
                             </NavLink>
                         ))}
                     </div>
