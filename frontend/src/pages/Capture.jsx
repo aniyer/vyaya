@@ -77,7 +77,10 @@ export default function Capture() {
                 await saveReceipt(file)
                 setSavedOffline(true)
                 setUploading(false)
-                setTimeout(() => navigate('/receipts'), 1500)
+                // Refresh pending list to show newly queued receipt
+                await loadPendingReceipts()
+                // Clear the success message after a few seconds
+                setTimeout(() => setSavedOffline(false), 3000)
                 return
             } catch (err) {
                 setError('Failed to save offline: ' + err.message)
@@ -106,7 +109,10 @@ export default function Capture() {
                     await saveReceipt(file)
                     setSavedOffline(true)
                     setUploading(false)
-                    setTimeout(() => navigate('/receipts'), 1500)
+                    // Refresh pending list to show newly queued receipt
+                    await loadPendingReceipts()
+                    // Clear the success message after a few seconds
+                    setTimeout(() => setSavedOffline(false), 3000)
                     return
                 } catch (offlineErr) {
                     setError('Failed to save offline: ' + offlineErr.message)
