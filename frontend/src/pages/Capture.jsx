@@ -40,7 +40,19 @@ export default function Capture() {
             navigate(`/receipts/${result.receipt.id}`)
         } catch (err) {
             // Check if it's a network error - save offline as fallback
-            if (!navigator.onLine || err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+            // Axios errors have err.code or err.message containing network-related strings
+            const isNetworkError =
+                !navigator.onLine ||
+                err.code === 'ERR_NETWORK' ||
+                err.code === 'ECONNABORTED' ||
+                err.code === 'ETIMEDOUT' ||
+                err.message?.includes('Network Error') ||
+                err.message?.includes('timeout') ||
+                err.message?.includes('net::') ||
+                err.message?.includes('Failed to fetch') ||
+                !err.response // No response means server was unreachable
+
+            if (isNetworkError) {
                 try {
                     await saveReceipt(file)
                     setSavedOffline(true)
