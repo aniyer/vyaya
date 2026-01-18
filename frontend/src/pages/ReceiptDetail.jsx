@@ -141,7 +141,7 @@ export default function ReceiptDetail() {
                 </Link>
 
                 <div className="card p-8 text-center">
-                    <div className="w-16 h-16 mx-auto mb-6 rounded-full border-4 border-primary-500 border-t-transparent animate-spin" />
+                    <div className="w-16 h-16 mx-auto mb-6 rounded-full border-4 border-amber-600 border-t-transparent animate-spin" />
                     <h2 className="text-2xl font-bold text-white mb-2">Processing Receipt</h2>
                     <p className="text-surface-400 mb-6">
                         AI is analyzing the image and extracting details...
