@@ -4,22 +4,15 @@ import axios from 'axios'
 const OfflineModeContext = createContext()
 
 export function OfflineModeProvider({ children }) {
-    // 1. User manual override (persisted)
-    const [forcedOffline, setForcedOffline] = useState(() => {
-        return localStorage.getItem('vyaya_forced_offline') === 'true'
-    })
-
-    // 2. Automated health state (starts as false = offline, conservatively)
+    // Automated health state (starts as false = offline, conservatively)
     const [isBackendReachable, setIsBackendReachable] = useState(false)
 
-    // 3. Effective state used by the app
-    // We are offline if: User forced it OR Backend is unreachable
-    const offlineMode = forcedOffline || !isBackendReachable
+    // Effective state used by the app is just based on backend reachability
+    const offlineMode = !isBackendReachable
 
     // Health check function
     const checkHealth = useCallback(async () => {
-        // Even if forced offline, we might want to know if backend is reachable? 
-        // But for efficiency/battery, maybe skip if browser is offline.
+        // If browser is offline, we are definitely offline
         if (!navigator.onLine) {
             setIsBackendReachable(false)
             return
@@ -64,23 +57,9 @@ export function OfflineModeProvider({ children }) {
         }
     }, [checkHealth])
 
-    const toggleOfflineMode = () => {
-        setForcedOffline(prev => {
-            const newValue = !prev
-            localStorage.setItem('vyaya_forced_offline', newValue.toString())
-            // If un-forcing, check health immediately
-            if (!newValue) {
-                checkHealth()
-            }
-            return newValue
-        })
-    }
-
     return (
         <OfflineModeContext.Provider value={{
             offlineMode,
-            toggleOfflineMode,
-            forcedOffline,
             isBackendReachable
         }}>
             {children}
