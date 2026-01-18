@@ -47,7 +47,7 @@ export default function Layout({ children }) {
             <header className="sticky top-0 z-40 border-b border-neutral-800 safe-top" style={{ backgroundColor: '#0a0a0a' }}>
                 <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src="/pwa-192x192.png" alt="Vyaya" className="w-10 h-10 rounded-xl" />
+                        <img src="/pwa-192x192.png?v=2" alt="Vyaya" className="w-10 h-10 rounded-xl" />
                         <div>
                             <h1 className="text-lg font-black tracking-tight text-amber-500">
                                 VYAYA
