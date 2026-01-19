@@ -1,32 +1,24 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { receiptsApi } from '../api/client'
-import { saveReceipt, saveManualReceipt, isOnline, getQueue, syncQueue } from '../services/OfflineStorage'
+import { useNavigate } from 'react-router-dom'
+import { useReceiptUpload } from '../hooks/useReceiptUpload'
 import { useOfflineMode } from '../context/OfflineModeContext'
+import { isOnline } from '../services/OfflineStorage'
 
 export default function Capture() {
     const navigate = useNavigate()
+    const { uploadFile, uploading, error: uploadError, savedOffline } = useReceiptUpload()
     const { offlineMode } = useOfflineMode()
-    const [mode, setMode] = useState('capture') // 'capture' or 'manual'
-    const [uploading, setUploading] = useState(false)
-    const [error, setError] = useState(null)
-    const [savedOffline, setSavedOffline] = useState(false)
+
+    // UI states
+    const [mode, setMode] = useState('camera') // 'camera' or 'file'
     const [isDragging, setIsDragging] = useState(false)
     const [isMobile, setIsMobile] = useState(false)
-
-    // Manual entry state
-    const [vendor, setVendor] = useState('')
-    const [total, setTotal] = useState('')
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0])
-    const [category, setCategory] = useState('other')
-    const [manualLoading, setManualLoading] = useState(false)
-
-    // Pending receipts state
-    const [pendingReceipts, setPendingReceipts] = useState([])
-    const [syncing, setSyncing] = useState(false)
+    const [cameraError, setCameraError] = useState(null)
+    const [stream, setStream] = useState(null)
 
     const fileInputRef = useRef(null)
-    const cameraInputRef = useRef(null)
+    const videoRef = useRef(null)
+    const canvasRef = useRef(null)
 
     useEffect(() => {
         const checkMobile = () => {
@@ -37,89 +29,116 @@ export default function Capture() {
         checkMobile()
     }, [])
 
-    // Load pending receipts
-    const loadPendingReceipts = useCallback(async () => {
-        const queue = await getQueue()
-        setPendingReceipts(queue)
-    }, [])
-
-    useEffect(() => {
-        loadPendingReceipts()
-    }, [loadPendingReceipts])
-
-    // Sync pending receipts
-    const handleSync = async () => {
-        if (syncing || pendingReceipts.length === 0) return
-        setSyncing(true)
-        try {
-            await syncQueue()
-            await loadPendingReceipts()
-        } catch (err) {
-            setError('Sync failed: ' + err.message)
-        } finally {
-            setSyncing(false)
+    // Camera handling
+    const startCamera = useCallback(async () => {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            setCameraError("Camera not supported or requires HTTPS.")
+            setMode('file')
+            return
         }
+
+        try {
+            // Stop any existing stream first
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop())
+            }
+
+            let newStream
+            try {
+                // Try rear camera preference first
+                newStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1920 },
+                        height: { ideal: 1080 }
+                    },
+                    audio: false
+                })
+            } catch (err) {
+                console.warn("Rear camera request failed, trying default.", err)
+                // Fallback to any video device
+                newStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false
+                })
+            }
+
+            setStream(newStream)
+            setCameraError(null)
+        } catch (err) {
+            console.error("Camera access error:", err)
+            // Show more specific error helpful for debugging
+            setCameraError(err.name === 'NotAllowedError' ? "Permission denied." : "Could not access camera.")
+            setMode('file') // Fallback
+        }
+    }, [stream])
+
+    const stopCamera = useCallback(() => {
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop())
+            setStream(null)
+        }
+    }, [stream])
+
+    // Attach stream to video element when it becomes available
+    useEffect(() => {
+        if (stream && videoRef.current) {
+            videoRef.current.srcObject = stream
+            videoRef.current.play().catch(e => console.error("Play failed", e))
+        }
+    }, [stream])
+
+    // Auto-start camera when entering camera mode
+    useEffect(() => {
+        if (mode === 'camera' && !uploading && !savedOffline) {
+            startCamera()
+        } else {
+            stopCamera()
+        }
+        return () => stopCamera()
+    }, [mode, uploading, savedOffline])
+    // removed startCamera/stopCamera from deps to avoid loops, added them back carefully or rely on stable refs? 
+    // safest is to dep on [mode] and use cleanup
+
+    const capturePhoto = () => {
+        if (!videoRef.current || !canvasRef.current) return
+
+        const video = videoRef.current
+        const canvas = canvasRef.current
+
+        // Match canvas size to video actual size
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+
+        const context = canvas.getContext('2d')
+        context.drawImage(video, 0, 0, canvas.width, canvas.height)
+
+        canvas.toBlob(async (blob) => {
+            if (blob) {
+                stopCamera() // Stop stream immediately
+                // Convert blob to file
+                const file = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' })
+                await handleFileSelect(file)
+            }
+        }, 'image/jpeg', 0.9)
     }
 
     const handleFileSelect = async (file) => {
         if (!file) return
 
-        const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
-        if (!validTypes.includes(file.type)) {
-            setError('Please select a valid image (JPEG, PNG, WebP, or HEIC)')
+        const validImageTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
+        if (!validImageTypes.includes(file.type)) {
+            alert('Please select a valid image (JPEG, PNG, WebP, or HEIC)')
             return
         }
 
-        setUploading(true)
-        setError(null)
-        setSavedOffline(false)
+        const result = await uploadFile(file)
 
-        if (offlineMode || !isOnline()) {
-            try {
-                await saveReceipt(file)
-                setSavedOffline(true)
-                setUploading(false)
-                // Refresh pending list to show newly queued receipt
-                await loadPendingReceipts()
-                // Clear the success message after a few seconds
-                setTimeout(() => setSavedOffline(false), 3000)
-                return
-            } catch (err) {
-                setError('Failed to save offline: ' + err.message)
-                setUploading(false)
-                return
-            }
-        }
-
-        try {
-            console.log('Attempting upload to backend...')
-            const result = await receiptsApi.upload(file)
-            console.log('Upload successful:', result)
-            navigate(`/receipts/${result.receipt.id}`)
-        } catch (err) {
-            // On ANY upload failure, save locally as fallback
-            console.error('Upload failed:', {
-                message: err.message,
-                code: err.code,
-                response: err.response?.status,
-                data: err.response?.data,
-            })
-            console.log('Saving to offline queue...')
-            try {
-                await saveReceipt(file)
-                console.log('Saved to offline queue successfully')
-                setSavedOffline(true)
-                setUploading(false)
-                // Refresh pending list to show newly queued receipt
-                await loadPendingReceipts()
-                // Clear the success message after a few seconds
-                setTimeout(() => setSavedOffline(false), 3000)
-                return
-            } catch (offlineErr) {
-                console.error('Failed to save offline:', offlineErr)
-                setError('Failed to save: ' + offlineErr.message)
-                setUploading(false)
-                return
+        if (result.success) {
+            if (result.offline) {
+                // Stay on page and show success message
+            } else {
+                navigate(`/receipts/${result.receipt.id}`)
             }
         }
     }
@@ -136,162 +155,129 @@ export default function Capture() {
         handleFileSelect(file)
     }
 
-    const handleManualSubmit = async (e) => {
-        e.preventDefault()
-        if (!vendor.trim() || !total) {
-            setError('Please fill in vendor and total')
-            return
-        }
-
-        const receiptData = {
-            vendor: vendor.trim(),
-            amount: parseFloat(total),
-            transaction_date: date,
-            // TODO: Map category string to category_id
-        }
-
-        if (offlineMode || !isOnline()) {
-            try {
-                await saveManualReceipt(receiptData)
-                setSavedOffline(true)
-                setManualLoading(false)
-                // Refresh pending list
-                await loadPendingReceipts()
-                // Clear form
-                setVendor('')
-                setTotal('')
-                // Clear success message
-                setTimeout(() => setSavedOffline(false), 3000)
-                return
-            } catch (err) {
-                setError('Failed to save offline: ' + err.message)
-                setManualLoading(false)
-                return
-            }
-        }
-
-        setManualLoading(true)
-        setError(null)
-
-        try {
-            const newReceipt = await receiptsApi.create(receiptData)
-            navigate(`/receipts/${newReceipt.id}`)
-        } catch (err) {
-            console.error('Manual creation failed:', err)
-            // Fallback to offline save
-            try {
-                await saveManualReceipt(receiptData)
-                setSavedOffline(true)
-                setManualLoading(false)
-                await loadPendingReceipts()
-                setVendor('')
-                setTotal('')
-                setTimeout(() => setSavedOffline(false), 3000)
-            } catch (offlineErr) {
-                setError('Failed to save receipt: ' + offlineErr.message)
-                setManualLoading(false)
-            }
-        }
-    }
-
-    const categories = [
-        { value: 'groceries', label: '🛒 Groceries' },
-        { value: 'dining', label: '🍽️ Dining' },
-        { value: 'transport', label: '🚗 Transport' },
-        { value: 'shopping', label: '🛍️ Shopping' },
-        { value: 'utilities', label: '💡 Utilities' },
-        { value: 'entertainment', label: '🎬 Entertainment' },
-        { value: 'health', label: '💊 Health' },
-        { value: 'other', label: '📝 Other' },
-    ]
-
     return (
-        <div className="py-6 space-y-6">
-            {/* Mode Toggle */}
-            <div className="flex rounded-lg bg-neutral-900 p-1">
-                <button
-                    onClick={() => setMode('capture')}
-                    className={`flex-1 py-3 px-4 rounded-md text-sm font-bold transition-all ${mode === 'capture'
-                        ? 'bg-amber-700 text-white'
-                        : 'text-white/50 hover:text-white'
-                        }`}
-                >
-                    📷 Scan Receipt
-                </button>
-                <button
-                    onClick={() => setMode('manual')}
-                    className={`flex-1 py-3 px-4 rounded-md text-sm font-bold transition-all ${mode === 'manual'
-                        ? 'bg-amber-700 text-white'
-                        : 'text-white/50 hover:text-white'
-                        }`}
-                >
-                    ✏️ Manual Entry
-                </button>
+        // Use a fragment or a minimal container that doesn't restrict layout
+        <>
+            {/* Header - Fixed Top */}
+            <div className="fixed top-0 left-0 right-0 z-30 p-4 safe-top bg-gradient-to-b from-black/80 to-transparent">
+                <div className="max-w-lg mx-auto flex items-center justify-between gap-4">
+                    <button
+                        onClick={() => navigate(-1)}
+                        className="p-2 -ml-2 text-surface-400 hover:text-white transition-colors bg-black/20 rounded-full backdrop-blur-sm"
+                    >
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+
+                    {/* Toggle Overlay */}
+                    {!uploading && !savedOffline && (
+                        <div className="bg-neutral-900/90 rounded-full p-1 flex items-center border border-white/10 backdrop-blur-md">
+                            <button
+                                onClick={() => setMode('camera')}
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${mode === 'camera'
+                                    ? 'bg-amber-600 text-white shadow-lg'
+                                    : 'text-white/50 hover:text-white'}`}
+                            >
+                                Camera
+                            </button>
+                            <button
+                                onClick={() => setMode('file')}
+                                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${mode === 'file'
+                                    ? 'bg-amber-600 text-white shadow-lg'
+                                    : 'text-white/50 hover:text-white'}`}
+                            >
+                                Upload
+                            </button>
+                        </div>
+                    )}
+
+                    <div className="w-6" /> {/* Spacer */}
+                </div>
             </div>
 
             {/* Error display */}
-            {error && (
-                <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
-                    <p className="text-red-400 text-sm">{error}</p>
+            {(uploadError || cameraError) && (
+                <div className="fixed top-24 left-4 right-4 z-40 p-4 rounded-xl bg-red-500/90 text-white border border-red-400 shadow-xl backdrop-blur-md max-w-lg mx-auto">
+                    <p className="text-sm font-medium">{uploadError || cameraError}</p>
                 </div>
             )}
 
-            {/* Capture Mode */}
-            {mode === 'capture' && (
-                <div
-                    className={`card-glow p-8 text-center transition-all ${isDragging ? 'ring-2 ring-amber-600' : ''
-                        }`}
-                    onDrop={handleDrop}
-                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
-                    onDragLeave={() => setIsDragging(false)}
-                >
+            {/* Hidden Canvas */}
+            <canvas ref={canvasRef} className="hidden" />
+
+            {/* Full Screen Camera Area */}
+            {mode === 'camera' ? (
+                <div className="fixed inset-0 z-0 bg-black">
+                    {stream ? (
+                        <>
+                            <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="absolute inset-0 w-full h-full object-cover"
+                            />
+
+                            {/* Shutter Button - Fixed Bottom */}
+                            <div className="fixed bottom-0 left-0 right-0 safe-bottom z-20 pointer-events-none">
+                                <div className="max-w-lg mx-auto px-6 h-20 grid grid-cols-3 items-center relative gap-4">
+                                    <div />
+                                    <div className="flex justify-center -mt-8 relative z-10 pointer-events-auto">
+                                        <button
+                                            onClick={capturePhoto}
+                                            className="w-20 h-20 rounded-full border-4 border-white flex items-center justify-center bg-white/20 active:bg-white/50 transition-all hover:scale-105 active:scale-95 shadow-2xl"
+                                            aria-label="Take Photo"
+                                        >
+                                            <div className="w-16 h-16 rounded-full bg-white transition-transform active:scale-90" />
+                                        </button>
+                                    </div>
+                                    <div />
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="flex-1 flex items-center justify-center h-full">
+                            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        </div>
+                    )}
+                </div>
+            ) : (
+                /* File Upload / Processing Mode - Standard Layout */
+                <div className="fixed inset-0 z-0 bg-black flex flex-col pt-24 px-4 pb-4 overflow-y-auto">
                     {uploading && !savedOffline ? (
-                        <div className="py-8">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-full border-4 border-amber-600 border-t-transparent animate-spin" />
-                            <p className="text-white font-medium">Processing...</p>
+                        <div className="flex-1 flex flex-col items-center justify-center">
+                            <div className="w-16 h-16 mb-4 rounded-full border-4 border-amber-600 border-t-transparent animate-spin" />
+                            <p className="text-white font-medium">Processing Receipt...</p>
                         </div>
                     ) : savedOffline ? (
-                        <div className="py-8">
-                            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
-                                <span className="text-3xl">📥</span>
+                        <div className="flex-1 flex flex-col items-center justify-center animate-fade-in text-center">
+                            <div className="w-20 h-20 mb-6 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                <span className="text-4xl">📥</span>
                             </div>
-                            <p className="text-amber-400 font-medium mb-1">Saved to Queue</p>
-                            <p className="text-sm text-white/50">Will upload when online</p>
+                            <h3 className="xl font-bold text-white mb-2">Saved to Queue</h3>
+                            <p className="text-white/60 mb-8">Receipt saved offline. Syncing when online.</p>
+                            <button
+                                onClick={() => navigate('/receipts')}
+                                className="w-full btn-secondary py-4"
+                            >
+                                View Queue
+                            </button>
                         </div>
                     ) : (
-                        <>
-                            <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-amber-900/30 flex items-center justify-center">
-                                <span className="text-4xl">📷</span>
-                            </div>
-
-                            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-4">
-                                {isMobile ? (
-                                    <>
-                                        <label className="btn-primary cursor-pointer inline-flex items-center justify-center gap-2">
-                                            📸 Take Photo
-                                            <input
-                                                ref={cameraInputRef}
-                                                type="file"
-                                                accept="image/*"
-                                                capture="environment"
-                                                className="hidden"
-                                                onChange={handleInputChange}
-                                            />
-                                        </label>
-                                        <label className="btn-secondary cursor-pointer inline-flex items-center justify-center gap-2">
-                                            🖼️ Gallery
-                                            <input
-                                                ref={fileInputRef}
-                                                type="file"
-                                                accept="image/*"
-                                                className="hidden"
-                                                onChange={handleInputChange}
-                                            />
-                                        </label>
-                                    </>
-                                ) : (
-                                    <label className="btn-primary cursor-pointer inline-flex items-center justify-center gap-2 px-8">
-                                        Choose Image
+                        <div
+                            className={`flex-1 card-glow relative flex flex-col justify-center transition-all ${isDragging ? 'ring-2 ring-amber-600' : ''}`}
+                            onDrop={handleDrop}
+                            onDragOver={(e) => { e.preventDefault(); setIsDragging(true) }}
+                            onDragLeave={() => setIsDragging(false)}
+                        >
+                            <div className="flex flex-col items-center animate-fade-in py-12">
+                                <div className="w-24 h-24 mx-auto mb-8 rounded-3xl bg-amber-900/30 flex items-center justify-center">
+                                    <span className="text-5xl">🖼️</span>
+                                </div>
+                                <div className="max-w-xs w-full space-y-4">
+                                    <label className="btn-primary cursor-pointer w-full flex items-center justify-center gap-3 py-4 text-lg shadow-xl">
+                                        Choose from Gallery
                                         <input
                                             ref={fileInputRef}
                                             type="file"
@@ -300,121 +286,15 @@ export default function Capture() {
                                             onChange={handleInputChange}
                                         />
                                     </label>
-                                )}
+                                </div>
+                                <p className="text-sm text-white/40 mt-6">
+                                    or drag and drop here
+                                </p>
                             </div>
-
-                            <p className="text-xs text-white/40">
-                                {isMobile ? 'or choose from gallery' : 'or drag and drop'}
-                            </p>
-                        </>
+                        </div>
                     )}
                 </div>
             )}
-
-            {/* Manual Mode */}
-            {mode === 'manual' && (
-                <form onSubmit={handleManualSubmit} className="card p-6 space-y-4">
-                    <div>
-                        <input
-                            type="text"
-                            placeholder="Vendor name"
-                            value={vendor}
-                            onChange={(e) => setVendor(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-amber-600"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <input
-                                type="number"
-                                step="0.01"
-                                placeholder="Total $"
-                                value={total}
-                                onChange={(e) => setTotal(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-amber-600"
-                            />
-                        </div>
-                        <div>
-                            <input
-                                type="date"
-                                value={date}
-                                onChange={(e) => setDate(e.target.value)}
-                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-amber-600"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <select
-                            value={category}
-                            onChange={(e) => setCategory(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-amber-600"
-                        >
-                            {categories.map((cat) => (
-                                <option key={cat.value} value={cat.value} className="bg-gray-900">
-                                    {cat.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={manualLoading}
-                        className="w-full btn-primary py-4 disabled:opacity-50"
-                    >
-                        {manualLoading ? 'Saving...' : 'Save Receipt'}
-                    </button>
-                </form>
-            )}
-
-            {/* Pending Receipts - shown below capture area */}
-            {pendingReceipts.length > 0 && (
-                <div className="card p-4">
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                            <span className="text-amber-500 text-lg">📥</span>
-                            <div>
-                                <p className="text-sm font-semibold text-white">
-                                    {pendingReceipts.length} Pending
-                                </p>
-                                <p className="text-xs text-neutral-500">
-                                    {isOnline() ? 'Ready to sync' : 'Offline'}
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleSync}
-                            disabled={syncing || !isOnline()}
-                            className="px-4 py-2 rounded-lg bg-amber-600 text-black font-bold text-sm hover:bg-amber-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {syncing ? 'Syncing...' : 'Sync'}
-                        </button>
-                    </div>
-                    <div className="flex gap-2 overflow-x-auto">
-                        {pendingReceipts.slice(0, 5).map((pending) => (
-                            <div
-                                key={pending.id}
-                                className="flex-shrink-0 w-12 h-12 rounded-lg bg-neutral-800 overflow-hidden"
-                            >
-                                {pending.file && (
-                                    <img
-                                        src={URL.createObjectURL(pending.file)}
-                                        alt="Pending"
-                                        className="w-full h-full object-cover"
-                                    />
-                                )}
-                            </div>
-                        ))}
-                        {pendingReceipts.length > 5 && (
-                            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-neutral-800 flex items-center justify-center">
-                                <span className="text-xs text-neutral-400">+{pendingReceipts.length - 5}</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
-        </div>
+        </>
     )
 }

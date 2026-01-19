@@ -118,6 +118,77 @@ async def upload_receipt(
     )
 
 
+@router.post("/upload-audio", response_model=UploadResponse)
+async def upload_audio_receipt(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    """
+    Upload a receipt audio note and start background processing.
+    """
+    # Validate file type
+    allowed_types = {"audio/webm", "audio/wav", "audio/mpeg", "audio/mp4", "audio/x-m4a"}
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid file type. Allowed: {', '.join(allowed_types)}",
+        )
+    
+    ensure_receipts_dir()
+    
+    # Generate path based on YYYY/MM/DD
+    today = get_eastern_date()
+    date_path = settings.receipts_dir / f"{today.year}/{today.month:02d}/{today.day:02d}"
+    date_path.mkdir(parents=True, exist_ok=True)
+    
+    # Generate unique filename
+    # Identify extension from content type if filename doesn't have it or as fallback
+    ext_map = {
+        "audio/webm": ".webm",
+        "audio/wav": ".wav", 
+        "audio/mpeg": ".mp3",
+        "audio/mp4": ".m4a",
+        "audio/x-m4a": ".m4a"
+    }
+    ext = Path(file.filename).suffix or ext_map.get(file.content_type, ".webm")
+    
+    unique_name = f"{uuid.uuid4()}{ext}"
+    file_path = date_path / unique_name
+    
+    # Save uploaded file
+    try:
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
+    
+    # Create initial receipt record
+    # We use a special image_path prefix or indicator? 
+    # Actually, we can just store the audio path. The frontend might need to know if it's audio to display a player or icon.
+    # But for now, let's store it. The UI currently assumes image. 
+    # We might need to handle this in GET /image/{id} or similar.
+    
+    receipt = Receipt(
+        image_path=str(file_path), # We store audio path here for now
+        status="processing",
+        vendor="Processing Audio...",
+        amount=0.0
+    )
+    
+    db.add(receipt)
+    db.commit()
+    db.refresh(receipt)
+    
+    # Queue background task
+    receipt_queue.put((receipt.id, str(file_path)))
+    
+    return UploadResponse(
+        receipt=receipt,
+        extraction_confidence=0.0,
+        message="Audio note uploaded and queued for processing",
+    )
+
+
 @router.get("", response_model=ReceiptListResponse)
 async def list_receipts(
     page: int = Query(1, ge=1),

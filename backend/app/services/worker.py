@@ -41,19 +41,24 @@ def process_receipt_task(receipt_id: str, file_path: str):
 
         # Broad try/except to ensure we catch *anything* and update status
         try:
-            # 1. Metadata Extraction
+            # Determine file type first
+            file_ext = Path(file_path).suffix.lower()
+            is_audio = file_ext in {".webm", ".wav", ".mp3", ".m4a", ".ogg"}
+
+            # 1. Metadata Extraction (Images only)
             extracted_date = None
-            try:
-                with Image.open(file_path) as img:
-                    exif = img._getexif()
-                    if exif:
-                        for tag, value in exif.items():
-                            if tag in ExifTags.TAGS and ExifTags.TAGS[tag] == 'DateTimeOriginal':
-                                # Format: YYYY:MM:DD HH:MM:SS
-                                extracted_date = datetime.strptime(value, '%Y:%m:%d %H:%M:%S').date()
-                                break
-            except Exception as e:
-                logger.warning(f"Error extracting metadata for receipt {receipt_id}: {e}")
+            if not is_audio:
+                try:
+                    with Image.open(file_path) as img:
+                        exif = img._getexif()
+                        if exif:
+                            for tag, value in exif.items():
+                                if tag in ExifTags.TAGS and ExifTags.TAGS[tag] == 'DateTimeOriginal':
+                                    # Format: YYYY:MM:DD HH:MM:SS
+                                    extracted_date = datetime.strptime(value, '%Y:%m:%d %H:%M:%S').date()
+                                    break
+                except Exception as e:
+                    logger.warning(f"Error extracting metadata for receipt {receipt_id}: {e}")
 
             if not extracted_date:
                 # Fallback to current time in EST
@@ -62,7 +67,13 @@ def process_receipt_task(receipt_id: str, file_path: str):
             receipt.transaction_date = extracted_date
 
             # 2. LLM Extraction
-            ocr_result = asyncio.run(process_receipt_image(file_path))
+            if is_audio:
+                 # Audio processing
+                 from ..services.llm import process_receipt_audio
+                 ocr_result = asyncio.run(process_receipt_audio(file_path))
+            else:
+                 # Image processing
+                 ocr_result = asyncio.run(process_receipt_image(file_path))
             
             # Check for explicit failure returned by LLM service
             if ocr_result.get("confidence") == 0.0 and "Error" in ocr_result.get("raw_text", ""):

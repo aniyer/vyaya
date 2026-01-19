@@ -11,6 +11,7 @@ A self-hosted, mobile-first web application for receipt management and expense t
 - 📊 **Expense Dashboard**: Visualize spending trends and category breakdowns
 - ✏️ **Manual Override**: Edit extracted data when OCR makes mistakes
 - 🏷️ **Auto-Categorization**: Intelligent category assignment based on vendor names
+- 🎙️ **Audio Notes**: Record voice memos ("spent $15 at Starbucks") which are auto-transcribed and parsed
 - 🔌 **Offline Mode**: 
     - Automatic offline detection via health checks
     - Capture/Enter receipts without internet connection
@@ -88,11 +89,14 @@ All data is stored in mounted volumes:
 
 ### Capturing Receipts
 
-1. Navigate to the **Capture** tab
-2. Use your device camera or upload an image
-3. Review the extracted data
-4. Make corrections if needed
-5. Save the receipt
+1. Tap the central **+** button
+2. Choose **Click** (Camera), **Speak** (Audio), or **Type** (Manual)
+3. **Camera Mode**:
+    - Use the immersive full-screen camera to snap a photo
+    - Toggle "Upload" to pick an existing file
+4. **Audio Mode**:
+    - Record a quick voice note describing the expense
+5. Review the extracted data and save
 
 ### Dashboard
 
@@ -140,7 +144,8 @@ npm run dev
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/api/receipts/upload` | Upload and process receipt |
+| `POST` | `/api/receipts/upload` | Upload and process receipt image |
+| `POST` | `/api/receipts/upload-audio` | Upload and process audio note |
 | `GET` | `/api/receipts` | List receipts (paginated) |
 | `GET` | `/api/receipts/{id}` | Get receipt details |
 | `PUT` | `/api/receipts/{id}` | Update receipt |

@@ -1,24 +1,28 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ReceiptForm from '../components/ReceiptForm'
-import { receiptsApi } from '../api/client'
+import { useReceiptUpload } from '../hooks/useReceiptUpload'
 
 export default function ManualEntry() {
     const navigate = useNavigate()
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState(null)
+    const { uploadManual, uploading, error: uploadError, savedOffline } = useReceiptUpload()
+
+    // Local error state if hook error doesn't cover it or we want to show it differently
+    // But hook handles error state mostly.
 
     const handleSubmit = async (data) => {
-        setLoading(true)
-        setError(null)
-        try {
-            const newReceipt = await receiptsApi.create(data)
-            navigate(`/receipts/${newReceipt.id}`)
-        } catch (err) {
-            console.error('Failed to create receipt:', err)
-            setError('Failed to create receipt. Please try again.')
-        } finally {
-            setLoading(false)
+        const result = await uploadManual(data)
+
+        if (result.success) {
+            if (result.offline) {
+                // Stay on page and show success message, or navigate back?
+                // Probably navigate to receipts list or show a toast.
+                // For now, let's navigate to receipts so they can see the pending item?
+                // Or maybe the hook handles navigation? No, hook returns result.
+                navigate('/receipts')
+            } else {
+                navigate(`/receipts/${result.receipt.id}`)
+            }
         }
     }
 
@@ -37,13 +41,19 @@ export default function ManualEntry() {
             </header>
 
             <div className="card p-6">
-                {error && (
+                {uploadError && (
                     <div className="bg-red-500/10 text-red-500 p-4 rounded-lg mb-6 text-sm">
-                        {error}
+                        {uploadError}
                     </div>
                 )}
 
-                <ReceiptForm onSubmit={handleSubmit} loading={loading} />
+                {savedOffline && (
+                    <div className="bg-amber-500/10 text-amber-500 p-4 rounded-lg mb-6 text-sm flex items-center gap-2">
+                        <span>📥</span> Saved to offline queue
+                    </div>
+                )}
+
+                <ReceiptForm onSubmit={handleSubmit} loading={uploading} />
             </div>
         </div>
     )

@@ -128,6 +128,101 @@ Respond ONLY with valid JSON matching this schema. Do not include any other text
     except Exception as e:
         logger.error(f"Gemini processing failed: {e}")
         return {
+            "confidence": 0.0,
+        }
+
+async def process_receipt_audio(audio_path: str) -> dict:
+    """
+    Process a receipt audio recording using Google GenAI (brand: Gemini/Gemma).
+    """
+    if not client:
+        return {
+            "vendor": None,
+            "amount": None,
+            "date": None,
+            "currency": "USD",
+            "raw_text": "Error: GenAI client not initialized (missing API key)",
+            "confidence": 0.0,
+        }
+
+    if not Path(audio_path).exists():
+        raise FileNotFoundError(f"Audio file not found: {audio_path}")
+
+    try:
+        # Load audio file
+        with open(audio_path, "rb") as f:
+            audio_bytes = f.read()
+
+        # Determine mime type based on extension
+        ext = Path(audio_path).suffix.lower()
+        mime_type = "audio/wav" if ext == ".wav" else "audio/webm"
+        
+        categories_str = ", ".join(VALID_CATEGORIES)
+        
+        prompt = f"""
+Act as an advanced receipt data extraction assistant. Listen to the audio recording where a user describes a purchase and extract specific data points into a structured JSON format.
+
+### Extraction Instructions:
+1. **Vendor**: Identify the store or service provider mentioned.
+2. **Date**: Extract the transaction date if mentioned (e.g., "yesterday", "last friday", "on January 12th"). Convert relative dates to absolute YYYY-MM-DD based on today's date: {datetime.now().strftime("%Y-%m-%d")}.
+3. **Amount**: Extract the total amount spent.
+4. **Currency**: Extract the currency if mentioned, otherwise default to USD.
+5. **Category**: Assign the most relevant category from this list: [{categories_str}].
+
+### Output Schema (Strict JSON):
+{{
+    "vendor": "string or null",
+    "date": "string or null",
+    "amount": number or null,
+    "currency": "string or null",
+    "category": "string or null"
+}}
+
+Respond ONLY with valid JSON matching this schema. Do not include any other text.
+"""        
+        
+        # Use Gemini Flash Latest as stable fallback
+        audio_model = "models/gemini-flash-latest"
+        logger.info(f"Calling LLM API with model {audio_model} for audio processing")
+        
+        response = client.models.generate_content(
+            model=audio_model,
+            contents=[
+                prompt,
+                types.Part.from_bytes(data=audio_bytes, mime_type=mime_type)
+            ],
+            config=types.GenerateContentConfig(
+                temperature=0.1,
+                max_output_tokens=1024,
+            )
+        )
+        
+        content = response.text
+        logger.info(f"LLM Audio Response: {content}")
+        
+        parsed_data = extract_json_from_response(content) or {}
+        
+        # Convert date string to object
+        date_obj = None
+        if parsed_data.get("date"):
+            try:
+                date_obj = datetime.strptime(parsed_data["date"], "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
+        return {
+            "vendor": parsed_data.get("vendor"),
+            "amount": parsed_data.get("amount"),
+            "date": date_obj,
+            "currency": parsed_data.get("currency", "USD"),
+            "category": parsed_data.get("category"),
+            "raw_text": content,
+            "confidence": 1.0 
+        }
+
+    except Exception as e:
+        logger.error(f"GenAI audio processing failed: {e}")
+        return {
             "vendor": None,
             "amount": None,
             "date": None,
