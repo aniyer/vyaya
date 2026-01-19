@@ -280,6 +280,8 @@ async def update_receipt(
     """
     Update receipt data (manual override).
     """
+    from ..services.currency import convert_to_usd
+    
     receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
     if not receipt:
         raise HTTPException(status_code=404, detail="Receipt not found")
@@ -288,6 +290,15 @@ async def update_receipt(
     update_dict = update_data.model_dump(exclude_unset=True)
     for field, value in update_dict.items():
         setattr(receipt, field, value)
+    
+    # Recalculate USD amount if amount or currency changed
+    if 'amount' in update_dict or 'currency' in update_dict:
+        if receipt.amount:
+            receipt.amount_usd = await convert_to_usd(
+                receipt.amount,
+                receipt.currency or "USD",
+                receipt.transaction_date
+            )
     
     db.commit()
     db.refresh(receipt)
