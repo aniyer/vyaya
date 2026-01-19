@@ -45,6 +45,7 @@ class Receipt(Base):
     id = Column(String(36), primary_key=True, index=True, default=lambda: str(uuid.uuid4()))
     vendor = Column(String(255), index=True)
     amount = Column(Float, nullable=True)
+    amount_usd = Column(Float, nullable=True)
     currency = Column(String(3), default="USD")
     transaction_date = Column(Date, nullable=True, index=True)
     category_id = Column(Integer, ForeignKey("categories.id"), nullable=True)

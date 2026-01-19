@@ -8,6 +8,7 @@ A self-hosted, mobile-first web application for receipt management and expense t
 
 - 📸 **Receipt Capture**: Mobile-friendly camera integration for quick receipt scanning
 - 🔍 **OCR Extraction**: Automatic extraction of vendor, date, and amount using Gemma 3 4B QAT (Local LLM)
+- 💱 **Currency Conversion**: Automatic conversion to USD for multi-currency receipt tracking
 - 📊 **Expense Dashboard**: Visualize spending trends and category breakdowns
 - ✏️ **Manual Override**: Edit extracted data when OCR makes mistakes
 - 🏷️ **Auto-Categorization**: Intelligent category assignment based on vendor names

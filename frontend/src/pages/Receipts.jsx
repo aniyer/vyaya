@@ -135,6 +135,30 @@ export default function Receipts() {
         )
     }
 
+    if (offlineMode) {
+        return (
+            <div className="py-6">
+                <div className="card p-8 text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
+                        <svg className="w-8 h-8 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+                            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
+                            <path d="M10.71 5.05A16 16 0 0 1 22.58 9" />
+                            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
+                            <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                            <line x1="12" y1="20" x2="12.01" y2="20" />
+                        </svg>
+                    </div>
+                    <h3 className="text-lg font-medium text-white mb-2">Offline Mode</h3>
+                    <p className="text-surface-400">
+                        Receipt history is unavailable while offline. Go online to view your receipts.
+                    </p>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="py-6 pb-20">
             {/* Compact Header + Filters */}
@@ -251,11 +275,22 @@ export default function Receipts() {
                                 className="flex-shrink-0 w-16 h-16 rounded-lg bg-surface-700 flex items-center justify-center overflow-hidden"
                             >
                                 {pending.file && (
-                                    <img
-                                        src={URL.createObjectURL(pending.file)}
-                                        alt="Pending receipt"
-                                        className="w-full h-full object-cover"
-                                    />
+                                    pending.type?.startsWith('audio/') ? (
+                                        <div className="flex flex-col items-center justify-center text-amber-500">
+                                            <svg className="w-8 h-8 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                                                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                                <line x1="12" y1="19" x2="12" y2="23" />
+                                                <line x1="8" y1="23" x2="16" y2="23" />
+                                            </svg>
+                                        </div>
+                                    ) : (
+                                        <img
+                                            src={URL.createObjectURL(pending.file)}
+                                            alt="Pending receipt"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    )
                                 )}
                             </div>
                         ))}
@@ -282,11 +317,9 @@ export default function Receipts() {
                     </div>
                     <h3 className="text-lg font-medium text-white mb-2">No receipts found</h3>
                     <p className="text-surface-400 mb-4">
-                        {offlineMode
-                            ? "You are currently in Offline Mode. Receipts captured will appear here after you go online and sync."
-                            : "Try adjusting your filters or search terms"}
+                        Try adjusting your filters or search terms
                     </p>
-                    {search || dateRange !== 'this_week' ? (
+                    {!offlineMode && (search || dateRange !== 'this_week') && (
                         <button
                             onClick={() => {
                                 setSearch('')
@@ -296,7 +329,8 @@ export default function Receipts() {
                         >
                             Reset Filters
                         </button>
-                    ) : (
+                    )}
+                    {!offlineMode && !search && dateRange === 'this_week' && (
                         <Link to="/capture" className="btn-primary inline-block">
                             Capture Receipt
                         </Link>
