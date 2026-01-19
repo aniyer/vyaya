@@ -19,6 +19,7 @@ from ..database import SessionLocal
 from ..models import Receipt, Category, get_eastern_date
 from ..services.llm import process_receipt_image
 from ..services.categorizer import auto_categorize
+from ..services.currency import convert_to_usd
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +85,14 @@ def process_receipt_task(receipt_id: str, file_path: str):
             receipt.amount = ocr_result.get("amount")
             receipt.currency = ocr_result.get("currency", "USD")
             receipt.raw_ocr_text = ocr_result.get("raw_text")
+
+            # Convert to USD if mount is present
+            if receipt.amount:
+                 receipt.amount_usd = asyncio.run(convert_to_usd(
+                     receipt.amount, 
+                     receipt.currency, 
+                     receipt.transaction_date
+                 ))
             
             # 3. Categorization
             if ocr_result.get("category"):

@@ -32,7 +32,7 @@ async def get_dashboard_summary(db: Session = Depends(get_db)):
     
     # Current month totals
     current_month_result = db.query(
-        func.coalesce(func.sum(Receipt.amount), 0).label("total"),
+        func.coalesce(func.sum(Receipt.amount_usd), 0).label("total"),
         func.count(Receipt.id).label("count"),
     ).filter(
         Receipt.transaction_date >= current_month_start,
@@ -44,7 +44,7 @@ async def get_dashboard_summary(db: Session = Depends(get_db)):
     
     # Previous month totals
     previous_month_result = db.query(
-        func.coalesce(func.sum(Receipt.amount), 0).label("total"),
+        func.coalesce(func.sum(Receipt.amount_usd), 0).label("total"),
     ).filter(
         Receipt.transaction_date >= previous_month_start,
         Receipt.transaction_date <= previous_month_end,
@@ -64,7 +64,10 @@ async def get_dashboard_summary(db: Session = Depends(get_db)):
         Category.name,
         Category.icon,
         Category.color,
-        func.coalesce(func.sum(Receipt.amount), 0).label("total"),
+        Category.name,
+        Category.icon,
+        Category.color,
+        func.coalesce(func.sum(Receipt.amount_usd), 0).label("total"),
         func.count(Receipt.id).label("count"),
     ).outerjoin(
         Receipt,
@@ -110,7 +113,7 @@ async def get_spending_trends(
     monthly_data = db.query(
         extract("year", Receipt.transaction_date).label("year"),
         extract("month", Receipt.transaction_date).label("month"),
-        func.coalesce(func.sum(Receipt.amount), 0).label("total"),
+        func.coalesce(func.sum(Receipt.amount_usd), 0).label("total"),
         func.count(Receipt.id).label("count"),
     ).filter(
         Receipt.transaction_date >= start_date,
