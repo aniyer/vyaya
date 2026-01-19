@@ -1,8 +1,8 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { useReceipts } from '../hooks/useReceipts'
 import ReceiptCard from '../components/ReceiptCard'
-import { getQueue, syncQueue, isOnline } from '../services/OfflineStorage'
+import { getQueue, syncQueue, isOnline, removeReceipt } from '../services/OfflineStorage'
 import { useOfflineMode } from '../context/OfflineModeContext'
 
 export default function Receipts() {
@@ -57,6 +57,12 @@ export default function Receipts() {
         setPendingReceipts(queue)
     }, [])
 
+    // Delete a pending receipt from the queue
+    const handleDeletePending = useCallback(async (id) => {
+        await removeReceipt(id)
+        await loadPendingReceipts()
+    }, [loadPendingReceipts])
+
     // Sync pending receipts to the server
     const handleSync = useCallback(async () => {
         if (syncing || pendingReceipts.length === 0) return
@@ -70,6 +76,20 @@ export default function Receipts() {
             // Reload pending list and receipts
             await loadPendingReceipts()
             refetch()
+
+            // Poll for updates as receipts are processed
+            // This catches when the backend finishes analyzing receipts
+            if (result.success > 0) {
+                let pollCount = 0
+                const maxPolls = 10 // Poll for up to 30 seconds (10 * 3s)
+                const pollInterval = setInterval(() => {
+                    pollCount++
+                    refetch()
+                    if (pollCount >= maxPolls) {
+                        clearInterval(pollInterval)
+                    }
+                }, 3000)
+            }
         } catch (err) {
             setSyncResult({ success: 0, failed: pendingReceipts.length, error: err.message })
         } finally {
@@ -81,6 +101,30 @@ export default function Receipts() {
     useEffect(() => {
         loadPendingReceipts()
     }, [loadPendingReceipts])
+
+    // Track previous offline mode to detect transitions
+    const wasOffline = useRef(offlineMode)
+
+    // When transitioning from offline to online, poll for receipt updates
+    useEffect(() => {
+        if (wasOffline.current && !offlineMode) {
+            // We just came back online - start polling for updates
+            refetch()
+
+            let pollCount = 0
+            const maxPolls = 10
+            const pollInterval = setInterval(() => {
+                pollCount++
+                refetch()
+                if (pollCount >= maxPolls) {
+                    clearInterval(pollInterval)
+                }
+            }, 3000)
+
+            return () => clearInterval(pollInterval)
+        }
+        wasOffline.current = offlineMode
+    }, [offlineMode, refetch])
 
     // Auto-sync when coming back online
     useEffect(() => {
@@ -137,22 +181,110 @@ export default function Receipts() {
 
     if (offlineMode) {
         return (
-            <div className="py-6">
-                <div className="card p-8 text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <line x1="1" y1="1" x2="23" y2="23" />
-                            <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
-                            <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
-                            <path d="M10.71 5.05A16 16 0 0 1 22.58 9" />
-                            <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
-                            <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-                            <line x1="12" y1="20" x2="12.01" y2="20" />
-                        </svg>
+            <div className="py-6 pb-20">
+                {/* Header */}
+                <div className="mb-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-white">History</h2>
+                        <span className="text-sm text-amber-400 flex items-center gap-1">
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="1" y1="1" x2="23" y2="23" />
+                                <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+                                <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
+                                <path d="M10.71 5.05A16 16 0 0 1 22.58 9" />
+                                <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
+                                <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                                <line x1="12" y1="20" x2="12.01" y2="20" />
+                            </svg>
+                            Offline
+                        </span>
                     </div>
-                    <h3 className="text-lg font-medium text-white mb-2">Offline Mode</h3>
-                    <p className="text-surface-400">
-                        Receipt history is unavailable while offline. Go online to view your receipts.
+                </div>
+
+                {/* Show pending receipts if any */}
+                {pendingReceipts.length > 0 ? (
+                    <div className="space-y-3">
+                        {pendingReceipts.map((pending) => (
+                            <div key={pending.id} className="card p-4 border-amber-500/30 bg-amber-500/5">
+                                <div className="flex items-center gap-4">
+                                    {/* Thumbnail */}
+                                    <div className="w-14 h-14 rounded-xl bg-surface-700 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                        {pending.file && (
+                                            pending.type?.startsWith('audio/') ? (
+                                                <svg className="w-6 h-6 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                                    <line x1="12" y1="19" x2="12" y2="23" />
+                                                    <line x1="8" y1="23" x2="16" y2="23" />
+                                                </svg>
+                                            ) : (
+                                                <img
+                                                    src={URL.createObjectURL(pending.file)}
+                                                    alt="Pending receipt"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            )
+                                        )}
+                                    </div>
+
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-white font-medium truncate">
+                                            {pending.type?.startsWith('audio/') ? 'Audio Receipt' : 'Receipt'}
+                                        </p>
+                                        <p className="text-sm text-surface-400">
+                                            {new Date(pending.timestamp).toLocaleDateString()}
+                                        </p>
+                                    </div>
+
+                                    {/* Pending badge */}
+                                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium">
+                                        <svg className="w-3 h-3 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="12" cy="12" r="10" />
+                                            <polyline points="12 6 12 12 16 14" />
+                                        </svg>
+                                        Pending
+                                    </div>
+
+                                    {/* Delete button */}
+                                    <button
+                                        onClick={() => handleDeletePending(pending.id)}
+                                        className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                                        title="Delete"
+                                    >
+                                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <polyline points="3 6 5 6 21 6" />
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="card p-8 text-center">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="1" y1="1" x2="23" y2="23" />
+                                <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
+                                <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
+                                <path d="M10.71 5.05A16 16 0 0 1 22.58 9" />
+                                <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
+                                <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                                <line x1="12" y1="20" x2="12.01" y2="20" />
+                            </svg>
+                        </div>
+                        <h3 className="text-lg font-medium text-white mb-2">Offline Mode</h3>
+                        <p className="text-surface-400">
+                            No pending receipts.
+                        </p>
+                    </div>
+                )}
+
+                {/* Info banner */}
+                <div className="mt-6 p-4 rounded-xl bg-surface-800/50 border border-surface-700">
+                    <p className="text-sm text-surface-400 text-center">
+                        Synced receipts will appear when you're back online.
                     </p>
                 </div>
             </div>
@@ -272,7 +404,7 @@ export default function Receipts() {
                         {pendingReceipts.map((pending) => (
                             <div
                                 key={pending.id}
-                                className="flex-shrink-0 w-16 h-16 rounded-lg bg-surface-700 flex items-center justify-center overflow-hidden"
+                                className="relative flex-shrink-0 w-16 h-16 rounded-lg bg-surface-700 flex items-center justify-center overflow-hidden group"
                             >
                                 {pending.file && (
                                     pending.type?.startsWith('audio/') ? (
@@ -292,6 +424,17 @@ export default function Receipts() {
                                         />
                                     )
                                 )}
+                                {/* Delete overlay */}
+                                <button
+                                    onClick={() => handleDeletePending(pending.id)}
+                                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                                    title="Delete"
+                                >
+                                    <svg className="w-5 h-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <polyline points="3 6 5 6 21 6" />
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                    </svg>
+                                </button>
                             </div>
                         ))}
                     </div>

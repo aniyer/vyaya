@@ -113,7 +113,8 @@ async def upload_receipt(
         image_path=str(file_path),
         status="processing",
         vendor="Processing...",
-        amount=0.0
+        amount=0.0,
+        currency="USD"
     )
     
     db.add(receipt)
@@ -184,7 +185,8 @@ async def upload_audio_receipt(
         image_path=str(file_path), # We store audio path here for now
         status="processing",
         vendor="Processing Audio...",
-        amount=0.0
+        amount=0.0,
+        currency="USD"
     )
     
     db.add(receipt)

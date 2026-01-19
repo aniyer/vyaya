@@ -115,8 +115,7 @@ export default function Capture() {
 
         canvas.toBlob(async (blob) => {
             if (blob) {
-                stopCamera() // Stop stream immediately
-                // Convert blob to file
+                stopCamera()
                 const file = new File([blob], `capture_${Date.now()}.jpg`, { type: 'image/jpeg' })
                 await handleFileSelect(file)
             }
@@ -134,10 +133,10 @@ export default function Capture() {
 
         const result = await uploadFile(file)
 
-        if (result.success) {
+        if (result && result.success) {
             if (result.offline) {
-                // Stay on page and show success message
-            } else {
+                navigate('/receipts')
+            } else if (result.receipt) {
                 navigate(`/receipts/${result.receipt.id}`)
             }
         }

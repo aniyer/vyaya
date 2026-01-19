@@ -80,19 +80,21 @@ def process_receipt_task(receipt_id: str, file_path: str):
             if ocr_result.get("confidence") == 0.0 and "Error" in ocr_result.get("raw_text", ""):
                  raise Exception(ocr_result.get("raw_text"))
 
-            # Update receipt with extracted data
-            receipt.vendor = ocr_result.get("vendor")
-            receipt.amount = ocr_result.get("amount")
-            receipt.currency = ocr_result.get("currency", "USD")
+            # Update receipt with extracted data (with defaults for missing values)
+            receipt.vendor = ocr_result.get("vendor") or "Unknown Vendor"
+            receipt.amount = ocr_result.get("amount") if ocr_result.get("amount") is not None else 0.0
+            receipt.currency = ocr_result.get("currency", "USD") if ocr_result.get("currency") is not None else "USD"
             receipt.raw_ocr_text = ocr_result.get("raw_text")
 
-            # Convert to USD if mount is present
+            # Convert to USD if amount is present
             if receipt.amount:
                  receipt.amount_usd = asyncio.run(convert_to_usd(
                      receipt.amount, 
                      receipt.currency, 
                      receipt.transaction_date
                  ))
+            else:
+                 receipt.amount_usd = 0.0
             
             # 3. Categorization
             if ocr_result.get("category"):
@@ -109,12 +111,32 @@ def process_receipt_task(receipt_id: str, file_path: str):
                 if category:
                     receipt.category_id = category.id
 
+            # Final fallback to 'Others' category
+            if not receipt.category_id:
+                others_category = db.query(Category).filter(
+                    func.lower(Category.name) == "others"
+                ).first()
+                if others_category:
+                    receipt.category_id = others_category.id
+
             receipt.status = "review"
             logger.info(f"Receipt {receipt_id} processed successfully")
 
         except Exception as e:
             logger.error(f"Processing failed for receipt {receipt_id}: {e}", exc_info=True)
-            receipt.status = "failed"
+            # Set default values on failure
+            receipt.vendor = receipt.vendor or "Unknown Vendor"
+            receipt.amount = receipt.amount if receipt.amount is not None else 0.0
+            receipt.amount_usd = 0.0
+            receipt.currency = receipt.currency or "USD"
+            # Assign 'Others' category on failure
+            if not receipt.category_id:
+                others_category = db.query(Category).filter(
+                    func.lower(Category.name) == "others"
+                ).first()
+                if others_category:
+                    receipt.category_id = others_category.id
+            receipt.status = "review"  # Still allow review even on failure
             receipt.raw_ocr_text = f"Processing failed: {str(e)}"
             
         db.commit()
