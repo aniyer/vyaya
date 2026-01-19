@@ -158,7 +158,7 @@ npm run dev
 
 - **Frontend**: React, Vite, Tailwind CSS, Recharts
 - **Backend**: Python, FastAPI, SQLAlchemy
-- **OCR**: Gemma 3 4B QAT (via llama-cpp-python + OpenBLAS)
+- **LLM**: Gemini API
 - **Database**: SQLite
 - **Deployment**: Docker, nginx
 
