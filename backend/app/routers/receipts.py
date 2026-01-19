@@ -43,12 +43,24 @@ async def create_receipt_manual(
     """
     Create a receipt manually without an image.
     """
+    from ..services.currency import convert_to_usd
+    
+    # Calculate USD amount if currency is provided
+    amount_usd = None
+    if receipt_data.amount:
+        amount_usd = await convert_to_usd(
+            receipt_data.amount,
+            receipt_data.currency or "USD",
+            receipt_data.transaction_date or get_eastern_date()
+        )
+    
     # Create receipt record
     receipt = Receipt(
         image_path="manual_entry",
         status="completed",
         vendor=receipt_data.vendor,
         amount=receipt_data.amount,
+        amount_usd=amount_usd,
         currency=receipt_data.currency,
         transaction_date=receipt_data.transaction_date or get_eastern_date(),
         category_id=receipt_data.category_id
