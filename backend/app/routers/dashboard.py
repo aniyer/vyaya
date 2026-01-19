@@ -64,9 +64,6 @@ async def get_dashboard_summary(db: Session = Depends(get_db)):
         Category.name,
         Category.icon,
         Category.color,
-        Category.name,
-        Category.icon,
-        Category.color,
         func.coalesce(func.sum(Receipt.amount_usd), 0).label("total"),
         func.count(Receipt.id).label("count"),
     ).outerjoin(

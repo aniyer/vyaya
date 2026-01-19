@@ -43,12 +43,24 @@ async def create_receipt_manual(
     """
     Create a receipt manually without an image.
     """
+    from ..services.currency import convert_to_usd
+    
+    # Calculate USD amount if currency is provided
+    amount_usd = None
+    if receipt_data.amount:
+        amount_usd = await convert_to_usd(
+            receipt_data.amount,
+            receipt_data.currency or "USD",
+            receipt_data.transaction_date or get_eastern_date()
+        )
+    
     # Create receipt record
     receipt = Receipt(
         image_path="manual_entry",
         status="completed",
         vendor=receipt_data.vendor,
         amount=receipt_data.amount,
+        amount_usd=amount_usd,
         currency=receipt_data.currency,
         transaction_date=receipt_data.transaction_date or get_eastern_date(),
         category_id=receipt_data.category_id
@@ -268,6 +280,8 @@ async def update_receipt(
     """
     Update receipt data (manual override).
     """
+    from ..services.currency import convert_to_usd
+    
     receipt = db.query(Receipt).filter(Receipt.id == receipt_id).first()
     if not receipt:
         raise HTTPException(status_code=404, detail="Receipt not found")
@@ -276,6 +290,15 @@ async def update_receipt(
     update_dict = update_data.model_dump(exclude_unset=True)
     for field, value in update_dict.items():
         setattr(receipt, field, value)
+    
+    # Recalculate USD amount if amount or currency changed
+    if 'amount' in update_dict or 'currency' in update_dict:
+        if receipt.amount:
+            receipt.amount_usd = await convert_to_usd(
+                receipt.amount,
+                receipt.currency or "USD",
+                receipt.transaction_date
+            )
     
     db.commit()
     db.refresh(receipt)
