@@ -179,8 +179,14 @@ export async function syncQueue(onProgress, onError) {
                         failed++
                         continue
                     }
-                    console.log('Uploading receipt file:', receipt.id)
-                    await receiptsApi.upload(receipt.file)
+
+                    if (receipt.type && receipt.type.startsWith('audio/')) {
+                        console.log('Uploading audio note:', receipt.id)
+                        await receiptsApi.uploadAudio(receipt.file)
+                    } else {
+                        console.log('Uploading receipt file:', receipt.id)
+                        await receiptsApi.upload(receipt.file)
+                    }
                 }
 
                 await removeReceipt(receipt.id)

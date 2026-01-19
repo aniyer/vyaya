@@ -189,14 +189,33 @@ export default function ReceiptDetail() {
                 Back to receipts
             </Link>
 
-            {/* Receipt image - Only if not manual entry */}
+            {/* Receipt Media - Image or Audio */}
             {receipt.image_path && receipt.image_path !== 'manual_entry' && (
-                <div className="card overflow-hidden">
-                    <img
-                        src={receiptsApi.getImageUrl(id)}
-                        alt="Receipt"
-                        className="w-full max-h-96 object-contain bg-surface-800"
-                    />
+                <div className="card overflow-hidden bg-black/40 backdrop-blur-sm flex items-center justify-center min-h-[200px]">
+                    {['webm', 'wav', 'mp3', 'm4a', 'ogg'].includes(receipt.image_path.split('.').pop().toLowerCase()) ? (
+                        <div className="w-full p-8 flex flex-col items-center gap-4">
+                            <div className="w-16 h-16 rounded-full bg-amber-500/20 flex items-center justify-center animate-pulse">
+                                <svg className="w-8 h-8 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                                    <line x1="12" y1="19" x2="12" y2="23" />
+                                    <line x1="8" y1="23" x2="16" y2="23" />
+                                </svg>
+                            </div>
+                            <audio
+                                controls
+                                className="w-full max-w-md"
+                                src={receiptsApi.getImageUrl(id)}
+                            />
+                            <p className="text-sm text-white/50">Audio Note</p>
+                        </div>
+                    ) : (
+                        <img
+                            src={receiptsApi.getImageUrl(id)}
+                            alt="Receipt"
+                            className="w-full max-h-96 object-contain"
+                        />
+                    )}
                 </div>
             )}
 

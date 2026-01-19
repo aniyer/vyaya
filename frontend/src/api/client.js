@@ -21,6 +21,16 @@ export const receiptsApi = {
         })
         return response.data
     },
+
+    uploadAudio: async (blob) => {
+        const formData = new FormData()
+        formData.append('file', blob, 'audio_note.webm') // Default filename, backend handles extension
+        const response = await client.post('/receipts/upload-audio', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 30000, // 30 second timeout for audio processing which might take longer
+        })
+        return response.data
+    },
     create: async (data) => {
         const response = await client.post('/receipts', data)
         return response.data
