@@ -128,15 +128,17 @@ export default function Receipts() {
 
     // Auto-sync when coming back online
     useEffect(() => {
-        const handleOnline = () => {
+        const handleOnline = async () => {
             if (pendingReceipts.length > 0) {
-                handleSync()
+                await handleSync()
             }
+            // Always reload pending receipts after coming online to ensure UI is in sync
+            await loadPendingReceipts()
         }
 
         window.addEventListener('online', handleOnline)
         return () => window.removeEventListener('online', handleOnline)
-    }, [pendingReceipts.length, handleSync])
+    }, [pendingReceipts.length, handleSync, loadPendingReceipts])
 
     const handlePageChange = (newPage) => {
         refetch({ page: newPage })
