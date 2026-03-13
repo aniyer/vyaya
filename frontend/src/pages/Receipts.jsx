@@ -78,10 +78,9 @@ export default function Receipts() {
             refetch()
 
             // Poll for updates as receipts are processed
-            // This catches when the backend finishes analyzing receipts
             if (result.success > 0) {
                 let pollCount = 0
-                const maxPolls = 10 // Poll for up to 30 seconds (10 * 3s)
+                const maxPolls = 10
                 const pollInterval = setInterval(() => {
                     pollCount++
                     refetch()
@@ -108,9 +107,7 @@ export default function Receipts() {
     // When transitioning from offline to online, poll for receipt updates
     useEffect(() => {
         if (wasOffline.current && !offlineMode) {
-            // We just came back online - start polling for updates
             refetch()
-
             let pollCount = 0
             const maxPolls = 10
             const pollInterval = setInterval(() => {
@@ -120,7 +117,6 @@ export default function Receipts() {
                     clearInterval(pollInterval)
                 }
             }, 3000)
-
             return () => clearInterval(pollInterval)
         }
         wasOffline.current = offlineMode
@@ -132,7 +128,6 @@ export default function Receipts() {
             if (pendingReceipts.length > 0) {
                 await handleSync()
             }
-            // Always reload pending receipts after coming online to ensure UI is in sync
             await loadPendingReceipts()
         }
 
@@ -149,17 +144,17 @@ export default function Receipts() {
             <div className="py-6 space-y-4">
                 <div className="mb-6">
                     <h2 className="text-2xl font-bold text-white mb-1">Receipts</h2>
-                    <p className="text-surface-400">Your receipt history</p>
+                    <p className="text-surface-300">Your receipt history</p>
                 </div>
                 {[1, 2, 3].map((i) => (
                     <div key={i} className="card p-4 animate-pulse">
                         <div className="flex items-center gap-4">
-                            <div className="w-14 h-14 bg-surface-700 rounded-xl" />
+                            <div className="w-14 h-14 bg-surface-700/50 rounded-xl" />
                             <div className="flex-1">
-                                <div className="h-4 bg-surface-700 rounded w-1/2 mb-2" />
-                                <div className="h-3 bg-surface-700 rounded w-1/3" />
+                                <div className="h-4 bg-surface-700/50 rounded w-1/2 mb-2" />
+                                <div className="h-3 bg-surface-700/50 rounded w-1/3" />
                             </div>
-                            <div className="h-5 bg-surface-700 rounded w-16" />
+                            <div className="h-5 bg-surface-700/50 rounded w-16" />
                         </div>
                     </div>
                 ))}
@@ -172,7 +167,7 @@ export default function Receipts() {
             <div className="py-6">
                 <div className="card p-6 text-center">
                     <p className="text-red-400 mb-4">Failed to load receipts</p>
-                    <p className="text-sm text-surface-400 mb-4">{error}</p>
+                    <p className="text-sm text-surface-300 mb-4">{error}</p>
                     <button onClick={() => refetch()} className="btn-primary">
                         Try Again
                     </button>
@@ -184,11 +179,10 @@ export default function Receipts() {
     if (offlineMode) {
         return (
             <div className="py-6 pb-20">
-                {/* Header */}
                 <div className="mb-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-bold text-white">History</h2>
-                        <span className="text-sm text-amber-400 flex items-center gap-1">
+                        <span className="text-sm text-primary-400 flex items-center gap-1">
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <line x1="1" y1="1" x2="23" y2="23" />
                                 <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
@@ -203,52 +197,40 @@ export default function Receipts() {
                     </div>
                 </div>
 
-                {/* Show pending receipts if any */}
                 {pendingReceipts.length > 0 ? (
                     <div className="space-y-3">
                         {pendingReceipts.map((pending) => (
-                            <div key={pending.id} className="card p-4 border-amber-500/30 bg-amber-500/5">
+                            <div key={pending.id} className="card p-4 border-primary-400/30 bg-primary-400/5">
                                 <div className="flex items-center gap-4">
-                                    {/* Thumbnail */}
                                     <div className="w-14 h-14 rounded-xl bg-surface-700 flex items-center justify-center overflow-hidden flex-shrink-0">
                                         {pending.file && (
                                             pending.type?.startsWith('audio/') ? (
-                                                <svg className="w-6 h-6 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <svg className="w-6 h-6 text-primary-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                     <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                                                     <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
                                                     <line x1="12" y1="19" x2="12" y2="23" />
                                                     <line x1="8" y1="23" x2="16" y2="23" />
                                                 </svg>
                                             ) : (
-                                                <img
-                                                    src={URL.createObjectURL(pending.file)}
-                                                    alt="Pending receipt"
-                                                    className="w-full h-full object-cover"
-                                                />
+                                                <img src={URL.createObjectURL(pending.file)} alt="Pending receipt" className="w-full h-full object-cover" />
                                             )
                                         )}
                                     </div>
-
-                                    {/* Info */}
                                     <div className="flex-1 min-w-0">
                                         <p className="text-white font-medium truncate">
                                             {pending.type?.startsWith('audio/') ? 'Audio Receipt' : 'Receipt'}
                                         </p>
-                                        <p className="text-sm text-surface-400">
+                                        <p className="text-sm text-surface-300">
                                             {new Date(pending.timestamp).toLocaleDateString()}
                                         </p>
                                     </div>
-
-                                    {/* Pending badge */}
-                                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-medium">
+                                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-400/20 text-primary-400 text-xs font-medium">
                                         <svg className="w-3 h-3 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                             <circle cx="12" cy="12" r="10" />
                                             <polyline points="12 6 12 12 16 14" />
                                         </svg>
                                         Pending
                                     </div>
-
-                                    {/* Delete button */}
                                     <button
                                         onClick={() => handleDeletePending(pending.id)}
                                         className="p-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
@@ -265,8 +247,8 @@ export default function Receipts() {
                     </div>
                 ) : (
                     <div className="card p-8 text-center">
-                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-amber-500/20 flex items-center justify-center">
-                            <svg className="w-8 h-8 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary-400/20 flex items-center justify-center">
+                            <svg className="w-8 h-8 text-primary-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <line x1="1" y1="1" x2="23" y2="23" />
                                 <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
                                 <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
@@ -277,15 +259,12 @@ export default function Receipts() {
                             </svg>
                         </div>
                         <h3 className="text-lg font-medium text-white mb-2">Offline Mode</h3>
-                        <p className="text-surface-400">
-                            No pending receipts.
-                        </p>
+                        <p className="text-surface-300">No pending receipts.</p>
                     </div>
                 )}
 
-                {/* Info banner */}
                 <div className="mt-6 p-4 rounded-xl bg-surface-800/50 border border-surface-700">
-                    <p className="text-sm text-surface-400 text-center">
+                    <p className="text-sm text-surface-300 text-center">
                         Synced receipts will appear when you're back online.
                     </p>
                 </div>
@@ -295,9 +274,7 @@ export default function Receipts() {
 
     return (
         <div className="py-6 pb-20">
-            {/* Compact Header + Filters */}
             <div className="mb-6 space-y-4">
-                {/* Title row with count */}
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl font-bold text-white">History</h2>
                     <span className="text-sm text-white/40">
@@ -305,75 +282,58 @@ export default function Receipts() {
                     </span>
                 </div>
 
-                {/* Compact filter row */}
                 <div className="flex gap-2">
-                    {/* Search */}
                     <div className="flex-1 relative">
                         <input
                             type="text"
                             placeholder="Search..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-3 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full bg-surface-800/60 backdrop-blur-md border border-primary-400/20 rounded-xl py-2.5 pl-10 pr-3 text-sm text-white placeholder-surface-400 focus:outline-none focus:ring-2 focus:ring-primary-400/50 focus:border-primary-400/50"
                         />
-                        <svg className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg className="w-4 h-4 text-surface-400 absolute left-3 top-1/2 -translate-y-1/2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <circle cx="11" cy="11" r="8" />
                             <line x1="21" y1="21" x2="16.65" y2="16.65" />
                         </svg>
                     </div>
 
-                    {/* Date filter dropdown */}
                     <select
                         value={dateRange}
                         onChange={(e) => setDateRange(e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-xl py-2.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500 appearance-none cursor-pointer min-w-[110px]"
-                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23ffffff40'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
+                        className="bg-surface-800/60 backdrop-blur-md border border-primary-400/20 rounded-xl py-2.5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-400/50 appearance-none cursor-pointer min-w-[110px]"
+                        style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23D4A574'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center', backgroundSize: '16px' }}
                     >
-                        <option value="this_week" className="bg-gray-900">This Week</option>
-                        <option value="this_month" className="bg-gray-900">This Month</option>
-                        <option value="custom" className="bg-gray-900">Custom</option>
-                        <option value="all" className="bg-gray-900">All Time</option>
+                        <option value="this_week" className="bg-surface-900">This Week</option>
+                        <option value="this_month" className="bg-surface-900">This Month</option>
+                        <option value="custom" className="bg-surface-900">Custom</option>
+                        <option value="all" className="bg-surface-900">All Time</option>
                     </select>
                 </div>
 
-                {/* Custom date range (only when selected) */}
                 {dateRange === 'custom' && (
                     <div className="flex gap-2">
-                        <input
-                            type="date"
-                            value={customStart}
-                            onChange={(e) => setCustomStart(e.target.value)}
-                            placeholder="From"
-                            className="flex-1 bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                        <input
-                            type="date"
-                            value={customEnd}
-                            onChange={(e) => setCustomEnd(e.target.value)}
-                            placeholder="To"
-                            className="flex-1 bg-white/5 border border-white/10 rounded-xl py-2 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
+                        <input type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} className="flex-1 bg-surface-800/60 backdrop-blur-md border border-primary-400/20 rounded-xl py-2 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-400/50" />
+                        <input type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} className="flex-1 bg-surface-800/60 backdrop-blur-md border border-primary-400/20 rounded-xl py-2 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-400/50" />
                     </div>
                 )}
             </div>
 
-            {/* Pending Uploads Section */}
             {pendingReceipts.length > 0 && (
-                <div className="mb-6 card p-4 bg-amber-500/10 border-amber-500/30">
+                <div className="mb-6 card p-4 bg-primary-400/10 border-primary-400/30">
                     <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
-                                <svg className="w-4 h-4 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <div className="w-8 h-8 rounded-lg bg-primary-400/20 flex items-center justify-center">
+                                <svg className="w-4 h-4 text-primary-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                                     <polyline points="17 8 12 3 7 8" />
                                     <line x1="12" y1="3" x2="12" y2="15" />
                                 </svg>
                             </div>
                             <div>
-                                <p className="text-amber-400 font-medium text-sm">
+                                <p className="text-primary-400 font-medium text-sm">
                                     {pendingReceipts.length} Pending Upload{pendingReceipts.length !== 1 ? 's' : ''}
                                 </p>
-                                <p className="text-xs text-surface-400">
+                                <p className="text-xs text-surface-300">
                                     {isOnline() ? 'Ready to sync' : 'Waiting for connection'}
                                 </p>
                             </div>
@@ -381,7 +341,7 @@ export default function Receipts() {
                         <button
                             onClick={handleSync}
                             disabled={syncing || !isOnline()}
-                            className="px-4 py-2 rounded-lg bg-amber-500 text-black font-medium text-sm hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-4 py-2 rounded-lg bg-gradient-to-r from-primary-400 to-primary-500 text-black font-medium text-sm hover:shadow-lg hover:shadow-primary-400/30 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             {syncing ? (
                                 <>
@@ -401,16 +361,12 @@ export default function Receipts() {
                         </button>
                     </div>
 
-                    {/* Pending receipt thumbnails */}
                     <div className="flex gap-2 overflow-x-auto pb-1">
                         {pendingReceipts.map((pending) => (
-                            <div
-                                key={pending.id}
-                                className="relative flex-shrink-0 w-16 h-16 rounded-lg bg-surface-700 flex items-center justify-center overflow-hidden group"
-                            >
+                            <div key={pending.id} className="relative flex-shrink-0 w-16 h-16 rounded-lg bg-surface-700 flex items-center justify-center overflow-hidden group">
                                 {pending.file && (
                                     pending.type?.startsWith('audio/') ? (
-                                        <div className="flex flex-col items-center justify-center text-amber-500">
+                                        <div className="flex flex-col items-center justify-center text-primary-400">
                                             <svg className="w-8 h-8 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                                 <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
                                                 <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
@@ -419,19 +375,10 @@ export default function Receipts() {
                                             </svg>
                                         </div>
                                     ) : (
-                                        <img
-                                            src={URL.createObjectURL(pending.file)}
-                                            alt="Pending receipt"
-                                            className="w-full h-full object-cover"
-                                        />
+                                        <img src={URL.createObjectURL(pending.file)} alt="Pending receipt" className="w-full h-full object-cover" />
                                     )
                                 )}
-                                {/* Delete overlay */}
-                                <button
-                                    onClick={() => handleDeletePending(pending.id)}
-                                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
-                                    title="Delete"
-                                >
+                                <button onClick={() => handleDeletePending(pending.id)} className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center" title="Delete">
                                     <svg className="w-5 h-5 text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                         <polyline points="3 6 5 6 21 6" />
                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
@@ -441,9 +388,8 @@ export default function Receipts() {
                         ))}
                     </div>
 
-                    {/* Sync result message */}
                     {syncResult && (
-                        <div className={`mt-3 text-sm ${syncResult.failed > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                        <div className={`mt-3 text-sm ${syncResult.failed > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
                             {syncResult.success > 0 && `${syncResult.success} uploaded successfully. `}
                             {syncResult.failed > 0 && `${syncResult.failed} failed.`}
                         </div>
@@ -451,34 +397,21 @@ export default function Receipts() {
                 </div>
             )}
 
-            {/* Receipt list */}
             {receipts.length === 0 ? (
                 <div className="card p-8 text-center">
                     <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-surface-700 flex items-center justify-center">
-                        <svg className="w-8 h-8 text-surface-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <svg className="w-8 h-8 text-surface-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                             <polyline points="14 2 14 8 20 8" />
                         </svg>
                     </div>
                     <h3 className="text-lg font-medium text-white mb-2">No receipts found</h3>
-                    <p className="text-surface-400 mb-4">
-                        Try adjusting your filters or search terms
-                    </p>
+                    <p className="text-surface-300 mb-4">Try adjusting your filters or search terms</p>
                     {!offlineMode && (search || dateRange !== 'this_week') && (
-                        <button
-                            onClick={() => {
-                                setSearch('')
-                                setDateRange('this_week')
-                            }}
-                            className="btn-secondary"
-                        >
-                            Reset Filters
-                        </button>
+                        <button onClick={() => { setSearch(''); setDateRange('this_week') }} className="btn-secondary">Reset Filters</button>
                     )}
                     {!offlineMode && !search && dateRange === 'this_week' && (
-                        <Link to="/capture" className="btn-primary inline-block">
-                            Capture Receipt
-                        </Link>
+                        <Link to="/capture" className="btn-primary inline-block">Capture Receipt</Link>
                     )}
                 </div>
             ) : (
@@ -489,29 +422,14 @@ export default function Receipts() {
                 </div>
             )}
 
-            {/* Pagination */}
             {pagination.pages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-6">
-                    <button
-                        onClick={() => handlePageChange(pagination.page - 1)}
-                        disabled={pagination.page <= 1}
-                        className="btn-secondary py-2 px-3 disabled:opacity-50"
-                    >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="15 18 9 12 15 6" />
-                        </svg>
+                    <button onClick={() => handlePageChange(pagination.page - 1)} disabled={pagination.page <= 1} className="btn-secondary py-2 px-3 disabled:opacity-50">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
                     </button>
-                    <span className="text-sm text-surface-400 px-3">
-                        Page {pagination.page} of {pagination.pages}
-                    </span>
-                    <button
-                        onClick={() => handlePageChange(pagination.page + 1)}
-                        disabled={pagination.page >= pagination.pages}
-                        className="btn-secondary py-2 px-3 disabled:opacity-50"
-                    >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="9 18 15 12 9 6" />
-                        </svg>
+                    <span className="text-sm text-surface-300 px-3">Page {pagination.page} of {pagination.pages}</span>
+                    <button onClick={() => handlePageChange(pagination.page + 1)} disabled={pagination.page >= pagination.pages} className="btn-secondary py-2 px-3 disabled:opacity-50">
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
                     </button>
                 </div>
             )}

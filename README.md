@@ -17,7 +17,8 @@ A self-hosted, mobile-first web application for receipt management and expense t
     - Automatic offline detection via health checks
     - Capture/Enter receipts without internet connection
     - Automatic background sync when connection is restored
-- 🎨 **Modern UI**: Clean, flat design logic with dark mode aesthetics
+- 🎨 **Modern UI**: Premium dark gold glassmorphism aesthetic with floating elements and depth
+- 🔍 **Zoomable Receipts**: Native full-screen image zoom for detailed receipt inspection
 - 🐳 **Self-Hosted**: Run on your own hardware with Docker
 
 ## Quick Start
