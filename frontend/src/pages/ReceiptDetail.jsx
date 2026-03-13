@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { useReceipt } from '../hooks/useReceipts'
 import ReceiptForm from '../components/ReceiptForm'
 import AudioPlayer from '../components/AudioPlayer'
 import { receiptsApi } from '../api/client'
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 export default function ReceiptDetail() {
     const { id } = useParams()
@@ -165,37 +167,75 @@ export default function ReceiptDetail() {
                         )}
                     </div>
 
-                    {isZoomed && (
+                    {isZoomed && createPortal(
                         <div
-                            className="fixed inset-0 z-[100] bg-black overflow-auto touch-pan-x touch-pan-y animate-fade-in"
-                            onClick={() => setIsZoomed(false)}
+                            className="fixed inset-0 z-[9999] bg-black animate-fade-in flex items-center justify-center"
                         >
-                            <div className="min-h-full min-w-full flex items-center justify-center p-2 sm:p-4">
-                                <img
-                                    src={receiptsApi.getImageUrl(id)}
-                                    alt="Receipt Zoomed"
-                                    className="max-w-[300vw] w-[200vw] sm:w-[150vw] md:w-auto md:max-w-none h-auto cursor-zoom-out"
-                                    onClick={(e) => {
-                                        // Stop propagation so clicking the image doesn't close it immediately, 
-                                        // unless we want click-to-close everywhere. We do want click-anywhere to close.
-                                        // So we actually don't stop propagation.
-                                    }}
-                                />
-                            </div>
-
-                            <button
-                                className="fixed top-safe right-4 mt-6 p-3 bg-black/50 text-white rounded-full backdrop-blur-md border border-white/10 shadow-xl"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setIsZoomed(false);
-                                }}
+                            <TransformWrapper
+                                defaultScale={1}
+                                defaultPositionX={0}
+                                defaultPositionY={0}
                             >
-                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <line x1="18" y1="6" x2="6" y2="18" />
-                                    <line x1="6" y1="6" x2="18" y2="18" />
-                                </svg>
-                            </button>
-                        </div>
+                                {({ zoomIn, zoomOut, resetTransform, ...rest }) => (
+                                    <>
+                                        <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                                            <TransformComponent wrapperClass="!w-full !h-full" contentClass="!w-full !h-full flex items-center justify-center cursor-grab active:cursor-grabbing">
+                                                <img
+                                                    src={receiptsApi.getImageUrl(id)}
+                                                    alt="Receipt Zoomed"
+                                                    className="max-h-screen object-contain max-w-none"
+                                                />
+                                            </TransformComponent>
+                                        </div>
+                                        {/* Close Button */}
+                                        <button
+                                            className="fixed top-6 right-6 p-3 bg-black/50 text-white rounded-full backdrop-blur-md border border-white/10 shadow-xl z-50 transition-colors hover:bg-black/70"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setIsZoomed(false);
+                                            }}
+                                        >
+                                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                <line x1="18" y1="6" x2="6" y2="18" />
+                                                <line x1="6" y1="6" x2="18" y2="18" />
+                                            </svg>
+                                        </button>
+
+                                        {/* Zoom Controls */}
+                                        <div className="fixed bottom-6 right-6 flex flex-col gap-2 z-50">
+                                            <button
+                                                className="p-3 bg-black/50 text-white rounded-full backdrop-blur-md border border-white/10 shadow-xl transition-colors hover:bg-black/70"
+                                                onClick={() => zoomIn()}
+                                            >
+                                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                className="p-3 bg-black/50 text-white rounded-full backdrop-blur-md border border-white/10 shadow-xl transition-colors hover:bg-black/70"
+                                                onClick={() => zoomOut()}
+                                            >
+                                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                className="p-3 bg-black/50 text-white rounded-full backdrop-blur-md border border-white/10 shadow-xl transition-colors hover:bg-black/70"
+                                                onClick={() => resetTransform()}
+                                            >
+                                                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                    <polyline points="23 4 23 10 17 10" />
+                                                    <polyline points="1 20 1 14 7 14" />
+                                                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </TransformWrapper>
+                        </div>,
+                        document.body
                     )}
                 </>
             )}
