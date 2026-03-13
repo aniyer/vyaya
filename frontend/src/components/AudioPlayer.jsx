@@ -60,10 +60,9 @@ export default function AudioPlayer({ src }) {
             <audio ref={audioRef} src={src} preload="metadata" />
 
             <div className="flex items-center gap-4">
-                {/* Play/Pause Button */}
                 <button
                     onClick={togglePlay}
-                    className="w-14 h-14 rounded-full bg-amber-500 hover:bg-amber-400 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-lg"
+                    className="w-14 h-14 rounded-full bg-gradient-to-br from-primary-300 to-primary-500 hover:shadow-lg hover:shadow-primary-400/30 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shadow-lg"
                 >
                     {isPlaying ? (
                         <svg className="w-6 h-6 text-black" viewBox="0 0 24 24" fill="currentColor">
@@ -77,23 +76,14 @@ export default function AudioPlayer({ src }) {
                     )}
                 </button>
 
-                {/* Progress and Time */}
                 <div className="flex-1">
-                    {/* Time Display */}
                     <div className="flex justify-between text-xs text-white/50 mb-2">
                         <span>{formatTime(currentTime)}</span>
                         <span>{formatTime(duration)}</span>
                     </div>
 
-                    {/* Progress Bar */}
-                    <div
-                        className="h-2 bg-white/10 rounded-full cursor-pointer overflow-hidden"
-                        onClick={handleSeek}
-                    >
-                        <div
-                            className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-100"
-                            style={{ width: `${progress}%` }}
-                        />
+                    <div className="h-2 bg-white/10 rounded-full cursor-pointer overflow-hidden" onClick={handleSeek}>
+                        <div className="h-full bg-gradient-to-r from-primary-300 to-primary-500 rounded-full transition-all duration-100" style={{ width: `${progress}%` }} />
                     </div>
                 </div>
             </div>

@@ -64,13 +64,13 @@ class Receipt(Base):
 
 # Default categories to seed
 DEFAULT_CATEGORIES = [
-    {"name": "Groceries", "icon": "🛒", "color": "#22c55e"},
-    {"name": "Dining", "icon": "🍽️", "color": "#f97316"},
-    {"name": "Fuel", "icon": "⛽", "color": "#eab308"},
-    {"name": "Utilities", "icon": "💡", "color": "#3b82f6"},
-    {"name": "Shopping", "icon": "🛍️", "color": "#8b5cf6"},
-    {"name": "Healthcare", "icon": "🏥", "color": "#ef4444"},
-    {"name": "Transportation", "icon": "🚗", "color": "#06b6d4"},
-    {"name": "Entertainment", "icon": "🎬", "color": "#ec4899"},
-    {"name": "Other", "icon": "📄", "color": "#64748b"},
+    {"name": "Groceries", "icon": "🛒", "color": "#86efac"},      # Pastel green
+    {"name": "Dining", "icon": "🍽️", "color": "#fdba74"},        # Pastel orange
+    {"name": "Fuel", "icon": "⛽", "color": "#fde047"},           # Pastel yellow
+    {"name": "Utilities", "icon": "💡", "color": "#93c5fd"},     # Pastel blue
+    {"name": "Shopping", "icon": "🛍️", "color": "#c4b5fd"},      # Pastel purple
+    {"name": "Healthcare", "icon": "🏥", "color": "#fca5a5"},    # Pastel red
+    {"name": "Transportation", "icon": "🚗", "color": "#67e8f9"}, # Pastel cyan
+    {"name": "Entertainment", "icon": "🎬", "color": "#f9a8d4"}, # Pastel pink
+    {"name": "Other", "icon": "📄", "color": "#cbd5e1"},         # Pastel slate
 ]

@@ -4,7 +4,7 @@ export default function CategoryPie({ data, compact = false }) {
     if (!data || data.length === 0) {
         return compact ? null : (
             <div className="card p-6 text-center">
-                <p className="text-surface-400">No category data available</p>
+                <p className="text-surface-300">No category data available</p>
             </div>
         )
     }
@@ -16,7 +16,7 @@ export default function CategoryPie({ data, compact = false }) {
     if (chartData.length === 0) {
         return compact ? null : (
             <div className="card p-6 text-center">
-                <p className="text-surface-400">No spending this month</p>
+                <p className="text-surface-300">No spending this month</p>
             </div>
         )
     }
@@ -28,7 +28,7 @@ export default function CategoryPie({ data, compact = false }) {
             const data = payload[0].payload
             const percentage = ((data.total / total) * 100).toFixed(1)
             return (
-                <div className="bg-surface-800 border border-surface-700 rounded-lg p-3 shadow-xl">
+                <div className="bg-surface-800 border border-primary-400/20 rounded-lg p-3 shadow-xl backdrop-blur-xl">
                     <p className="flex items-center gap-2 text-sm font-medium text-white mb-1">
                         <span>{data.icon}</span>
                         {data.category_name}
@@ -36,7 +36,7 @@ export default function CategoryPie({ data, compact = false }) {
                     <p className="text-lg font-bold" style={{ color: data.color }}>
                         ${data.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </p>
-                    <p className="text-xs text-surface-400">{percentage}% of total</p>
+                    <p className="text-xs text-surface-300">{percentage}% of total</p>
                 </div>
             )
         }
@@ -45,7 +45,7 @@ export default function CategoryPie({ data, compact = false }) {
 
     const content = (
         <>
-            {!compact && <h3 className="text-sm font-medium text-surface-400 mb-4">By Category</h3>}
+            {!compact && <h3 className="text-sm font-medium text-surface-300 mb-4">By Category</h3>}
 
             <div className="flex items-center gap-4">
                 {/* Pie Chart */}
@@ -78,7 +78,7 @@ export default function CategoryPie({ data, compact = false }) {
                                 className="w-2 h-2 rounded-full flex-shrink-0"
                                 style={{ backgroundColor: cat.color }}
                             />
-                            <span className={compact ? "truncate text-white/70 text-xs" : "truncate text-surface-300"}>
+                            <span className={compact ? "truncate text-white/70 text-xs" : "truncate text-surface-200"}>
                                 {cat.icon} {cat.category_name}
                             </span>
                             <span className={compact ? "ml-auto font-medium text-white text-xs flex-shrink-0" : "ml-auto font-medium text-white flex-shrink-0"}>
@@ -87,7 +87,7 @@ export default function CategoryPie({ data, compact = false }) {
                         </div>
                     ))}
                     {chartData.length > (compact ? 4 : 5) && (
-                        <p className="text-xs text-surface-500">
+                        <p className="text-xs text-surface-400">
                             +{chartData.length - (compact ? 4 : 5)} more
                         </p>
                     )}

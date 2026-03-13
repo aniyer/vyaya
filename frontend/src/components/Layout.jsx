@@ -25,20 +25,20 @@ export default function Layout({ children }) {
     const isCapturePage = location.pathname === '/capture'
 
     return (
-        <div className="min-h-screen flex flex-col bg-black">
+        <div className="min-h-screen flex flex-col">
             {/* Header - Hide on Capture page */}
             {!isCapturePage && (
-                <header className="sticky top-0 z-40 border-b border-white/10 safe-top bg-black/80 backdrop-blur-md">
+                <header className="sticky top-0 z-40 border-b border-primary-400/10 safe-top bg-surface-900/80 backdrop-blur-xl">
                     <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <img src="/pwa-192x192.png?v=2" alt="Vyaya" className="w-8 h-8 rounded-lg" />
+                            <img src="/gemini-logo.png" alt="Vyaya" className="w-8 h-8 rounded-lg object-cover" />
                             <div className="flex items-center gap-2">
-                                <h1 className="text-xl font-black tracking-tight text-amber-500">
+                                <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-primary-300 via-primary-400 to-primary-500 bg-clip-text text-transparent">
                                     VYAYA
                                 </h1>
                                 {/* Subtle Status Indicator */}
                                 <div
-                                    className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${offlineMode ? 'bg-amber-500 animate-pulse' : 'bg-green-500/30'
+                                    className={`w-1.5 h-1.5 rounded-full transition-colors duration-500 ${offlineMode ? 'bg-red-500 animate-pulse' : 'bg-emerald-400/50'
                                         }`}
                                     title={offlineMode ? 'Offline' : 'Online'}
                                 />

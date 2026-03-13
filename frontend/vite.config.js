@@ -12,8 +12,8 @@ export default defineConfig({
                 name: 'Vyaya',
                 short_name: 'Vyaya',
                 description: 'Receipt management and expense tracking',
-                theme_color: '#0f172a',
-                background_color: '#0f172a',
+                theme_color: '#000000',
+                background_color: '#000000',
                 display: 'standalone',
                 icons: [
                     {

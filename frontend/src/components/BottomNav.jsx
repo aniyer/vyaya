@@ -123,7 +123,7 @@ export default function BottomNav() {
                 onAudioSelect={handleAudioSelect}
             />
 
-            <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-800 safe-bottom bg-neutral-950/80 backdrop-blur-md">
+            <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-primary-400/10 safe-bottom bg-surface-900/80 backdrop-blur-xl">
                 <div className="max-w-lg mx-auto px-6 h-20 grid grid-cols-3 items-center relative gap-4">
 
                     {/* Left: Dashboard */}
@@ -132,8 +132,8 @@ export default function BottomNav() {
                             to="/"
                             className={({ isActive }) =>
                                 `flex flex-col items-center gap-1 transition-colors ${isActive
-                                    ? 'text-amber-500'
-                                    : 'text-neutral-500 hover:text-neutral-300'
+                                    ? 'text-primary-400'
+                                    : 'text-surface-400 hover:text-surface-200'
                                 }`
                             }
                         >
@@ -151,11 +151,12 @@ export default function BottomNav() {
                                 w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300
                                 ${audioMode && isRecording
                                     ? 'bg-red-500 animate-pulse ring-4 ring-red-500/30 scale-110'
-                                    : 'bg-gradient-to-br from-amber-400 to-amber-600 hover:scale-105 hover:shadow-amber-500/20'
+                                    : 'bg-gradient-to-br from-primary-300 to-primary-500 hover:scale-105 hover:shadow-primary-500/30'
                                 }
                                 ${isTrayOpen ? 'rotate-45' : 'rotate-0'}
                                 ${uploading ? 'opacity-50 cursor-not-allowed' : ''}
                             `}
+                            style={{ boxShadow: audioMode && isRecording ? undefined : '0 8px 30px rgba(212, 165, 116, 0.4)' }}
                         >
                             {uploading ? (
                                 <div className="w-6 h-6 border-2 border-black border-t-transparent rounded-full animate-spin" />
@@ -173,8 +174,8 @@ export default function BottomNav() {
                             to="/receipts"
                             className={({ isActive }) =>
                                 `flex flex-col items-center gap-1 transition-colors ${isActive
-                                    ? 'text-amber-500'
-                                    : 'text-neutral-500 hover:text-neutral-300'
+                                    ? 'text-primary-400'
+                                    : 'text-surface-400 hover:text-surface-200'
                                 }`
                             }
                         >
