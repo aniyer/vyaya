@@ -28,7 +28,6 @@ build/
 Thumbs.db
 
 # Data (persisted via volumes)
-config/
 storage/
 *.db
 

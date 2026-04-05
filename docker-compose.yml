@@ -1,19 +1,15 @@
 services:
   backend:
     build:
-      context: ./backend
+      context: ./backend-go
       dockerfile: Dockerfile
     container_name: vyaya-backend
     restart: unless-stopped
     environment:
-      - DATABASE_URL=sqlite:////app/data/vyaya.db
+      - DATABASE_URL=/app/data/vyaya.db
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
-      - PUID=${PUID:-1000}
-      - PGID=${PGID:-1000}
-      # Resource Limiting
-      - WEB_CONCURRENCY=1
-      - OMP_NUM_THREADS=4
-      - MKL_NUM_THREADS=4
+      - DATA_DIR=/app/data
+      - RECEIPTS_DIR=/app/data/receipts
     volumes:
       - /mnt/applications/vyaya/config:/app/data
       - /mnt/applications/vyaya/storage:/app/data/receipts
@@ -23,7 +19,7 @@ services:
       - internal_network
       - proxy_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/api/health"]
       interval: 300s
       timeout: 10s
       retries: 3
